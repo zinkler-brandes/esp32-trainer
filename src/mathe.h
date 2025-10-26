@@ -10,13 +10,27 @@ class Mathe {
     Mathe();
     void init();
     void drawButtons();
-    void handleButtonPress(int16_t x, int16_t y);  // Touch-Koordinaten verarbeiten
+    void handleButtonPress(int16_t x, int16_t y);
 
   private:
     TFT_eSPI tft;
 
-    // Test-Buttons für Numpad
+    // Buttons für Numpad
     Button* buttons[12];  // 0-9, C, OK
+
+    // Spiel-Logik
+    int _num1, _num2, _result;
+    char _operation;  // '+' oder '-'
+    String _userInput;
+    int _score;
+
+    // Methoden
+    void generateTask();
+    void updateDisplay();
+    void addDigit(String digit);
+    void clearInput();
+    void checkAnswer();
+    void showFeedback(bool correct);
 };
 
 #endif

@@ -8,10 +8,10 @@ Mathe::Mathe() {
   //         [C][0][OK]
 
   int startX = 20;
-  int startY = 50;
+  int startY = 60;
   int btnWidth = 90;
-  int btnHeight = 40;
-  int spacing = 8;
+  int btnHeight = 38;
+  int spacing = 6;
 
   // Reihe 1: 7, 8, 9
   buttons[0] = new Button(startX, startY, btnWidth, btnHeight, "7");
@@ -46,13 +46,20 @@ void Mathe::init() {
 
   tft.setRotation(1); // Landscape (320x240)
   tft.fillScreen(TFT_BLACK);
-  tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.setTextSize(2);
-  tft.setCursor(10, 10);
-  tft.println("Leos Mathe-Trainer");
+
+  // Spiel initialisieren
+  _score = 0;
+  _userInput = "";
+  randomSeed(analogRead(0));  // Zufallsgenerator initialisieren
+
+  // Erste Aufgabe generieren
+  generateTask();
 
   // Buttons zeichnen
   drawButtons();
+
+  // Display aktualisieren
+  updateDisplay();
 }
 
 void Mathe::drawButtons() {
@@ -65,14 +72,118 @@ void Mathe::handleButtonPress(int16_t x, int16_t y) {
   // Prüfen welcher Button gedrückt wurde
   for (int i = 0; i < 12; i++) {
     if (buttons[i]->contains(x, y)) {
-      Serial.printf("Button pressed: %s\n", buttons[i]->getLabel().c_str());
+      String label = buttons[i]->getLabel();
+      Serial.printf("Button pressed: %s\n", label.c_str());
 
-      // TODO: Hier die Logik für den Mathe-Trainer einbauen
-      // - Ziffer zur Antwort hinzufügen
-      // - C: Antwort löschen
-      // - OK: Antwort prüfen
+      if (label == "C") {
+        clearInput();
+      } else if (label == "OK") {
+        checkAnswer();
+      } else {
+        // Ziffer (0-9)
+        addDigit(label);
+      }
 
       break;
     }
+  }
+}
+
+void Mathe::generateTask() {
+  // Zufällig Addition oder Subtraktion
+  _operation = random(0, 2) == 0 ? '+' : '-';
+
+  if (_operation == '+') {
+    // Addition: Beide Zahlen 1-25, Summe <= 50
+    _num1 = random(1, 80);
+    _num2 = random(1, min(26, 120 - _num1));  // Damit Summe <= 120
+    _result = _num1 + _num2;
+  } else {
+    // Subtraktion: Erste Zahl 10-100, zweite Zahl 1-10, Ergebnis >= 0
+    _num2 = random(1, 11);  // Subtrahend max 10
+    _num1 = random(_num2, 101);  // Damit Ergebnis >= 0
+    _result = _num1 - _num2;
+  }
+
+  Serial.printf("New task: %d %c %d = %d\n", _num1, _operation, _num2, _result);
+}
+
+void Mathe::updateDisplay() {
+  // Score anzeigen (links oben)
+  tft.fillRect(0, 0, 100, 30, TFT_BLACK);
+  tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+  tft.setTextSize(2);
+  tft.setCursor(10, 5);
+  tft.printf("# %d", _score);
+
+  // Aufgabe anzeigen (mittig oben)
+  tft.fillRect(100, 0, 220, 30, TFT_BLACK);
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  tft.setTextSize(2);
+  tft.setCursor(110, 5);
+  tft.printf("%d %c %d = ?", _num1, _operation, _num2);
+
+  // Eingabe anzeigen (unter der Aufgabe)
+  tft.fillRect(10, 30, 300, 20, TFT_BLACK);
+  tft.setTextColor(TFT_CYAN, TFT_BLACK);
+  tft.setTextSize(2);
+  tft.setCursor(10, 32);
+  tft.print("Antwort: ");
+  tft.setTextColor(TFT_GREEN, TFT_BLACK);
+  tft.print(_userInput);
+}
+
+void Mathe::addDigit(String digit) {
+  // Maximal 3 Ziffern (Ergebnis <= 100)
+  if (_userInput.length() < 3) {
+    _userInput += digit;
+    updateDisplay();
+  }
+}
+
+void Mathe::clearInput() {
+  _userInput = "";
+  updateDisplay();
+}
+
+void Mathe::checkAnswer() {
+  if (_userInput.length() == 0) {
+    return;  // Keine Eingabe
+  }
+
+  int answer = _userInput.toInt();
+  bool correct = (answer == _result);
+
+  showFeedback(correct);
+
+  if (correct) {
+    _score++;
+    delay(1500);  // Richtig: 1,5 Sekunden
+  } else {
+    _score = 0;
+    delay(5000);  // Falsch: 3 Sekunden (länger zum Lernen)
+  }
+
+  // Neue Aufgabe
+  _userInput = "";
+  generateTask();
+  updateDisplay();
+}
+
+void Mathe::showFeedback(bool correct) {
+  // Feedback-Bereich (über den Buttons)
+  tft.fillRect(0, 0, 320, 50, correct ? TFT_GREEN : TFT_RED);
+  tft.setTextColor(TFT_WHITE, correct ? TFT_GREEN : TFT_RED);
+  tft.setTextSize(3);
+
+  if (correct) {
+    tft.setCursor(80, 15);
+    tft.print("RICHTIG!");
+  } else {
+    tft.setCursor(60, 5);
+    tft.printf("FALSCH!");
+    tft.setTextSize(2);
+    tft.setCursor(60, 28);
+    tft.printf("%d %c %d = %d", _num1, _operation, _num2, _result);
   }
 }
