@@ -36,6 +36,10 @@ Mathe::Mathe() {
 
   buttons[11] = new Button(startX + 2*(btnWidth + spacing), startY + 3*(btnHeight + spacing), btnWidth, btnHeight, "OK");
   buttons[11]->setColors(TFT_GREEN, TFT_WHITE);  // OK = grün
+
+  // Start-Button (rechts oben)
+  homeButton = new Button(290, 5, 25, 25, "S");
+  homeButton->setColors(TFT_ORANGE, TFT_WHITE);
 }
 
 void Mathe::init() {
@@ -50,7 +54,10 @@ void Mathe::init() {
   // Spiel initialisieren
   _score = 0;
   _userInput = "";
-  randomSeed(analogRead(0));  // Zufallsgenerator initialisieren
+
+  // Zufallsgenerator mit LDR initialisieren (echtes Rauschen!)
+  randomSeed(analogRead(34));  // Pin 34 = LDR Lichtsensor
+  Serial.printf("Random seed: %d\n", analogRead(34));
 
   // Erste Aufgabe generieren
   generateTask();
@@ -66,10 +73,17 @@ void Mathe::drawButtons() {
   for (int i = 0; i < 12; i++) {
     buttons[i]->draw(&tft);
   }
+  homeButton->draw(&tft);
 }
 
-void Mathe::handleButtonPress(int16_t x, int16_t y) {
-  // Prüfen welcher Button gedrückt wurde
+bool Mathe::handleButtonPress(int16_t x, int16_t y) {
+  // Home-Button prüfen
+  if (homeButton->contains(x, y)) {
+    Serial.println("HOME pressed - returning to menu");
+    return true;  // Zurück zum Menü
+  }
+
+  // Numpad-Buttons prüfen
   for (int i = 0; i < 12; i++) {
     if (buttons[i]->contains(x, y)) {
       String label = buttons[i]->getLabel();
@@ -87,6 +101,8 @@ void Mathe::handleButtonPress(int16_t x, int16_t y) {
       break;
     }
   }
+
+  return false;  // Kein Home-Button, weiter im Modus
 }
 
 void Mathe::generateTask() {
@@ -116,12 +132,15 @@ void Mathe::updateDisplay() {
   tft.setCursor(10, 5);
   tft.printf("# %d", _score);
 
-  // Aufgabe anzeigen (mittig oben)
-  tft.fillRect(100, 0, 220, 30, TFT_BLACK);
+  // Aufgabe anzeigen (mittig oben, aber nicht über Home-Button)
+  tft.fillRect(100, 0, 165, 30, TFT_BLACK);  // Nur bis x=265 (Home-Button startet bei 270)
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
   tft.setTextSize(2);
   tft.setCursor(110, 5);
   tft.printf("%d %c %d = ?", _num1, _operation, _num2);
+
+  // Home-Button neu zeichnen (falls überschrieben)
+  homeButton->draw(&tft);
 
   // Eingabe anzeigen (unter der Aufgabe)
   tft.fillRect(10, 30, 300, 20, TFT_BLACK);

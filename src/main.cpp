@@ -1,22 +1,34 @@
 #include <Arduino.h>
+#include "Menu.h"
 #include "mathe.h"
 #include "Touch.h"
 
+// Modi
+enum AppMode {
+  MODE_MENU,
+  MODE_MATHE,
+  MODE_FUSSBALL_RESULTS,
+  MODE_FUSSBALL_TABLES
+};
+
+// Globale Objekte
+Menu menu;
 Mathe matheTrainer;
 Touch touch;
-
-// Pins für RGB LED und LDR
-#define RGB_LED_R 4
-#define RGB_LED_G 16
-#define RGB_LED_B 17
-#define LDR_PIN 34
+AppMode currentMode = MODE_MENU;
 
 void setup() {
   Serial.begin(115200);
   delay(100);
 
-  matheTrainer.init();
+  // Touch initialisieren
   touch.begin();
+
+  // Menü initialisieren und anzeigen
+  menu.init();
+  menu.draw();
+
+  Serial.println("System started - showing menu");
 }
 
 void loop() {
@@ -33,7 +45,46 @@ void loop() {
       // Nur verarbeiten wenn gültige Koordinaten
       if (x >= 0 && y >= 0) {
         Serial.printf("Touch at: (%d, %d)\n", x, y);
-        matheTrainer.handleButtonPress(x, y);
+
+        // Touch je nach Modus verarbeiten
+        switch (currentMode) {
+          case MODE_MENU:
+            {
+              int choice = menu.handleTouch(x, y);
+              if (choice == 1) {
+                // Mathe-Trainer starten
+                Serial.println("Starting Mathe-Trainer");
+                matheTrainer.init();
+                currentMode = MODE_MATHE;
+              } else if (choice == 2) {
+                Serial.println("Fussball-Ergebnisse (noch nicht implementiert)");
+                // TODO: Fussball-Ergebnisse Modus
+              } else if (choice == 3) {
+                Serial.println("Fussball-Tabellen (noch nicht implementiert)");
+                // TODO: Fussball-Tabellen Modus
+              }
+            }
+            break;
+
+          case MODE_MATHE:
+            {
+              bool returnToMenu = matheTrainer.handleButtonPress(x, y);
+              if (returnToMenu) {
+                Serial.println("Returning to menu");
+                menu.draw();
+                currentMode = MODE_MENU;
+              }
+            }
+            break;
+
+          case MODE_FUSSBALL_RESULTS:
+            // TODO: Implementieren
+            break;
+
+          case MODE_FUSSBALL_TABLES:
+            // TODO: Implementieren
+            break;
+        }
       }
     }
   }
