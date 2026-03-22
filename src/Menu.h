@@ -5,16 +5,21 @@
 #include <TFT_eSPI.h>
 #include "Button.h"
 
+#define MAX_PLAYER_NAME_LENGTH 8
+
 class Menu {
   public:
     Menu();
     void init();
     void draw();
-    int handleTouch(int16_t x, int16_t y);  // Gibt gewählte Option zurück (1-3, 0=nichts)
+    void setPlayerName(const String& name);
+    int handleTouch(int16_t x, int16_t y);  // 0=Zurück, 1=Mathe, 2=Englisch
 
   private:
     TFT_eSPI tft;
-    Button* menuButtons[3];  // 3 Menü-Optionen
+    Button* backButton;      // Zurück zur Profilauswahl
+    Button* menuButtons[2];  // Fächer: Mathe, Englisch
+    String _playerName;
 };
 
 #endif

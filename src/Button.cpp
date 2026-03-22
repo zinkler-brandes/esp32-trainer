@@ -44,3 +44,8 @@ void Button::setColors(uint16_t btnColor, uint16_t txtColor) {
   _color = btnColor;
   _textColor = txtColor;
 }
+
+// Label ändern
+void Button::setLabel(const String& label) {
+  _label = label;
+}

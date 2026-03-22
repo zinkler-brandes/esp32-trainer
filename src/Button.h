@@ -21,6 +21,9 @@ class Button {
     // Farben ändern (optional)
     void setColors(uint16_t btnColor, uint16_t txtColor);
 
+    // Label ändern (für dynamische Buttons)
+    void setLabel(const String& label);
+
   private:
     int16_t _x, _y;           // Position (obere linke Ecke)
     uint16_t _width, _height; // Größe
