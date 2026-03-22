@@ -8,14 +8,15 @@ Button::Button(int16_t x, int16_t y, uint16_t w, uint16_t h, String label) {
   _height = h;
   _label = label;
 
-  // Standardfarben
+  // Standardfarben und Textgroesse
   _color = TFT_BLUE;        // Button-Hintergrund blau
-  _textColor = TFT_WHITE;   // Text weiß
+  _textColor = TFT_WHITE;   // Text weiss
+  _textSize = 2;            // Standard-Textgroesse
 }
 
 // Button auf Display zeichnen
 void Button::draw(TFT_eSPI* tft) {
-  // Gefülltes Rechteck (Button-Hintergrund)
+  // Gefuelltes Rechteck (Button-Hintergrund)
   tft->fillRoundRect(_x, _y, _width, _height, 8, _color);
 
   // Rahmen um den Button
@@ -23,7 +24,7 @@ void Button::draw(TFT_eSPI* tft) {
 
   // Text zentriert im Button
   tft->setTextColor(_textColor);
-  tft->setTextSize(2);
+  tft->setTextSize(_textSize);
   tft->setTextDatum(MC_DATUM); // Middle Center
   tft->drawString(_label, _x + _width/2, _y + _height/2);
 }
@@ -45,7 +46,12 @@ void Button::setColors(uint16_t btnColor, uint16_t txtColor) {
   _textColor = txtColor;
 }
 
-// Label ändern
+// Label aendern
 void Button::setLabel(const String& label) {
   _label = label;
+}
+
+// Textgroesse aendern
+void Button::setTextSize(uint8_t size) {
+  _textSize = size;
 }

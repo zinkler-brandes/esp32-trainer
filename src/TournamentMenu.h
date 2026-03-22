@@ -12,12 +12,13 @@ class TournamentMenu {
     TournamentMenu();
     void init();
     void draw();
-    int handleTouch(int16_t x, int16_t y);  // 0=Zurück, 1=DFB-Pokal, 2=CL
+    int handleTouch(int16_t x, int16_t y);  // 0=Zurueck, 1=DFB-Pokal, 2=CL, 3=WM2026
 
   private:
     TFT_eSPI tft;
     Button* dfbButton;
     Button* clButton;
+    Button* wmButton;
     Button* backButton;
 };
 
@@ -27,12 +28,11 @@ class TournamentMatheModeMenu {
     TournamentMatheModeMenu();
     void init();
     void draw();
-    int handleTouch(int16_t x, int16_t y);  // 0=Zurück, 1=+/-, 2=1x1
+    int handleTouch(int16_t x, int16_t y);  // 0=Zurück, 1=+/-, 2=1x1, 3=1:1, 4=Alle
 
   private:
     TFT_eSPI tft;
-    Button* plusMinusButton;
-    Button* multiplyButton;
+    Button* menuButtons[4];  // +/-, 1x1, 1:1, Alle (2x2 Grid)
     Button* backButton;
 };
 

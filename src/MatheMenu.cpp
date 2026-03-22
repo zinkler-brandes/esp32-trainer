@@ -1,27 +1,24 @@
 #include "MatheMenu.h"
 
 MatheMenu::MatheMenu() {
-  int btnWidth = 280;
-  int btnHeight = 45;
-  int startX = 20;
-  int startY = 45;
-  int spacing = 12;
+  // Zurück-Button (oben links)
+  backButton = new Button(10, 8, 40, 30, "<");
+  backButton->setColors(TFT_DARKGREY, TFT_WHITE);
 
-  // Button 1: +/- (Addition/Subtraktion)
-  menuButtons[0] = new Button(startX, startY, btnWidth, btnHeight, "+/-");
+  // Menü-Buttons
+  int btnWidth = 280;
+  int btnHeight = 60;
+  int startX = 20;
+  int startY = 70;
+  int spacing = 20;
+
+  // Button 1: Einzelspiel
+  menuButtons[0] = new Button(startX, startY, btnWidth, btnHeight, "Einzelspiel");
   menuButtons[0]->setColors(TFT_BLUE, TFT_WHITE);
 
-  // Button 2: 1x1 (Multiplikation)
-  menuButtons[1] = new Button(startX, startY + (btnHeight + spacing), btnWidth, btnHeight, "1x1");
-  menuButtons[1]->setColors(TFT_PURPLE, TFT_WHITE);
-
-  // Button 3: Pokal-Modus
-  menuButtons[2] = new Button(startX, startY + 2*(btnHeight + spacing), btnWidth, btnHeight, "Pokal-Modus");
-  menuButtons[2]->setColors(0xFE60, TFT_BLACK);  // Gold
-
-  // Zurück-Button
-  backButton = new Button(startX, 205, btnWidth, 30, "Zurueck");
-  backButton->setColors(TFT_DARKGREY, TFT_WHITE);
+  // Button 2: Turniere
+  menuButtons[1] = new Button(startX, startY + (btnHeight + spacing), btnWidth, btnHeight, "Turniere");
+  menuButtons[1]->setColors(0xFE60, TFT_BLACK);  // Gold
 }
 
 void MatheMenu::init() {
@@ -34,17 +31,19 @@ void MatheMenu::init() {
 void MatheMenu::draw() {
   tft.fillScreen(TFT_BLACK);
 
-  // Titel
-  tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.setTextSize(2);
-  tft.setCursor(120, 15);
-  tft.println("Mathe");
+  // Zurück-Button
+  backButton->draw(&tft);
 
-  // Buttons zeichnen
-  for (int i = 0; i < 3; i++) {
+  // Titel "MATHE" (neben dem Zurück-Button)
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  tft.setTextSize(3);
+  tft.setCursor(60, 12);
+  tft.print("MATHE");
+
+  // Menü-Buttons zeichnen
+  for (int i = 0; i < 2; i++) {
     menuButtons[i]->draw(&tft);
   }
-  backButton->draw(&tft);
 }
 
 int MatheMenu::handleTouch(int16_t x, int16_t y) {
@@ -54,9 +53,9 @@ int MatheMenu::handleTouch(int16_t x, int16_t y) {
   }
 
   // Menü-Buttons
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < 2; i++) {
     if (menuButtons[i]->contains(x, y)) {
-      return i + 1;  // 1=+/-, 2=1x1, 3=Pokal
+      return i + 1;  // 1=Einzelspiel, 2=Pokal-Modus
     }
   }
 

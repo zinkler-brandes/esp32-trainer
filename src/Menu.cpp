@@ -1,24 +1,31 @@
 #include "Menu.h"
 
 Menu::Menu() : _playerName("") {
-  // Zurück-Button (oben links)
+  // Zurueck-Button (oben links)
   backButton = new Button(10, 8, 40, 30, "<");
   backButton->setColors(TFT_DARKGREY, TFT_WHITE);
 
-  // Fächer-Buttons
-  int btnWidth = 280;
-  int btnHeight = 60;
-  int startX = 20;
-  int startY = 70;
-  int spacing = 20;
+  // Button-Layout (2x2 Grid)
+  int btnWidth = 135;
+  int btnHeight = 50;
+  int leftX = 15;
+  int rightX = 170;
+  int startY = 55;
+  int spacing = 15;
 
-  // Button 1: Mathe
-  menuButtons[0] = new Button(startX, startY, btnWidth, btnHeight, "Mathe");
-  menuButtons[0]->setColors(TFT_BLUE, TFT_WHITE);
+  // Zeile 1: Mathe (links), Rekorde (rechts)
+  matheButton = new Button(leftX, startY, btnWidth, btnHeight, "Mathe");
+  matheButton->setColors(TFT_BLUE, TFT_WHITE);
 
-  // Button 2: Englisch (noch nicht implementiert)
-  menuButtons[1] = new Button(startX, startY + (btnHeight + spacing), btnWidth, btnHeight, "Englisch");
-  menuButtons[1]->setColors(TFT_PURPLE, TFT_WHITE);
+  recordsButton = new Button(rightX, startY, btnWidth, btnHeight, "Rekorde");
+  recordsButton->setColors(0xFE60, TFT_BLACK);  // Gold mit schwarzer Schrift
+
+  // Zeile 2: Schreiben (links), Quiz (rechts)
+  schreibenButton = new Button(leftX, startY + btnHeight + spacing, btnWidth, btnHeight, "Schreiben");
+  schreibenButton->setColors(0x07E0, TFT_BLACK);  // Gruen mit schwarzer Schrift
+
+  quizButton = new Button(rightX, startY + btnHeight + spacing, btnWidth, btnHeight, "Quiz");
+  quizButton->setColors(0xF800, TFT_WHITE);  // Rot mit weisser Schrift
 }
 
 void Menu::init() {
@@ -39,32 +46,47 @@ void Menu::setPlayerName(const String& name) {
 void Menu::draw() {
   tft.fillScreen(TFT_BLACK);
 
-  // Zurück-Button
+  // Zurueck-Button
   backButton->draw(&tft);
 
-  // Spielername (neben dem Zurück-Button)
+  // Spielername (neben dem Zurueck-Button)
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
   tft.setTextSize(3);
   tft.setCursor(60, 12);
   tft.print(_playerName);
 
-  // Fächer-Buttons zeichnen
-  for (int i = 0; i < 2; i++) {
-    menuButtons[i]->draw(&tft);
-  }
+  // Buttons zeichnen (2x2 Grid)
+  matheButton->draw(&tft);
+  recordsButton->draw(&tft);
+  schreibenButton->draw(&tft);
+  quizButton->draw(&tft);
 }
 
 int Menu::handleTouch(int16_t x, int16_t y) {
-  // Zurück-Button
+  // Zurueck-Button
   if (backButton->contains(x, y)) {
-    return 0;  // Zurück zur Profilauswahl
+    return 0;  // Zurueck zur Profilauswahl
   }
 
-  // Fächer-Buttons
-  for (int i = 0; i < 2; i++) {
-    if (menuButtons[i]->contains(x, y)) {
-      return i + 1;  // 1=Mathe, 2=Englisch
-    }
+  // Mathe-Button
+  if (matheButton->contains(x, y)) {
+    return 1;  // Mathe
   }
+
+  // Rekorde-Button
+  if (recordsButton->contains(x, y)) {
+    return 2;  // Rekorde
+  }
+
+  // Schreiben-Button
+  if (schreibenButton->contains(x, y)) {
+    return 3;  // Schreiben
+  }
+
+  // Quiz-Button
+  if (quizButton->contains(x, y)) {
+    return 4;  // Quiz-Menue
+  }
+
   return -1;  // Nichts getroffen
 }

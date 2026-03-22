@@ -24,12 +24,16 @@ class Button {
     // Label ändern (für dynamische Buttons)
     void setLabel(const String& label);
 
+    // Textgroesse aendern (Standard: 2)
+    void setTextSize(uint8_t size);
+
   private:
     int16_t _x, _y;           // Position (obere linke Ecke)
-    uint16_t _width, _height; // Größe
+    uint16_t _width, _height; // Groesse
     String _label;            // Text auf dem Button
     uint16_t _color;          // Button-Farbe
     uint16_t _textColor;      // Text-Farbe
+    uint8_t _textSize;        // Text-Groesse (Standard: 2)
 };
 
 #endif

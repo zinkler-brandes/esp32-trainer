@@ -4,20 +4,22 @@
 #include <Arduino.h>
 #include <TFT_eSPI.h>
 #include "Button.h"
+#include "SoccerField.h"
+#include "Teams.h"
 
 enum MatheMode {
-  MATHE_PLUS_MINUS,   // Addition und Subtraktion
-  MATHE_MULTIPLY,     // Kleines 1x1
-  MATHE_MIXED         // Beides gemischt (für Champions League)
+  MATHE_PLUS_MINUS,   // 0: Addition und Subtraktion (+/-)
+  MATHE_MULTIPLY,     // 1: Kleines 1x1 (Multiplikation)
+  MATHE_DIVIDE,       // 2: Division (1:1)
+  MATHE_ALL           // 3: Alle gemischt (+/-, 1x1, 1:1)
 };
 
 class Mathe {
   public:
     Mathe();
     void init(MatheMode mode, unsigned long durationMs, unsigned long answerTimeMs, int stepsForGoal, int nachspielzeitSek = 0);
-    void showNachspielzeitTafel(int sekunden);
     void drawButtons();
-    bool handleButtonPress(int16_t x, int16_t y);  // Gibt true zurück wenn Home gedrückt
+    int handleButtonPress(int16_t x, int16_t y);  // 0=nichts, 1=Home (GameOver), 2=Exit angefragt
     void update();  // Timer prüfen und anzeigen, in main loop aufrufen
     bool isGameOver();
     int getRemainingSeconds();
@@ -32,23 +34,30 @@ class Mathe {
     void updateTimerDisplay();       // Spielzeit-Timer neu zeichnen
     void updateAnswerTimerDisplay(); // Antwort-Timer neu zeichnen
     void handleAnswerTimeout();      // Timeout = Gegentor
+    void redrawScreen();             // Vollständiges Neuzeichnen (nach Dialog)
+
+    // Turnier-Modus fuer Logos/Flaggen auf Scoreboard
+    void setTournamentMode(TournamentType type, int playerTeamIdx = -1, int opponentTeamIdx = -1);
+    void clearTournamentMode();
 
   private:
     TFT_eSPI tft;
+    SoccerField _soccerField;  // Spielfeld-Visualisierung
 
     // Buttons für Numpad
-    Button* buttons[12];  // 0-9, C, OK
-    Button* homeButton;   // Zurück zum Menü
+    Button* buttons[12];  // 0-9, <-, OK
+    Button* homeButton;   // Zurück zum Menü (bei Game Over)
+    Button* exitButton;   // Abbrechen (rotes X, oben rechts)
 
     // Spiel-Logik
     MatheMode _mode;
     int _num1, _num2, _result;
-    char _operation;  // '+', '-' oder '*'
+    char _operation;  // '+', '-', '*' oder '/'
     String _userInput;
 
     // Fußball-Motivation
-    int _playerPosition;  // 0-9 (10 Schritte bis zum Tor)
-    int _goalsScored;     // Leo's Tore
+    int _playerPosition;  // 0-N (N Schritte bis zum Tor)
+    int _goalsScored;     // Spieler-Tore
     int _goalsAgainst;    // Gegentore
 
     // Timer (Spielzeit)
@@ -74,12 +83,6 @@ class Mathe {
     void addDigit(String digit);
     void backspace();
     void checkAnswer();
-    void showFeedback(bool correct);
-    void drawField(int crossedFields, int totalFields);
-    void drawPlayer(int position, bool withBall, int totalSteps);
-    void drawGoalkeeper();
-    void drawGoal();
-    void drawScoreboard();
     void showAnimationScreen(bool correct);
     void showGameOver();
 };

@@ -25,6 +25,7 @@ class TrophyDisplay {
 
     void drawDFBPokal();
     void drawHenkelpott();
+    void drawWorldCupTrophy();
     void drawConfetti();
 };
 

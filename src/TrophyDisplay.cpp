@@ -21,8 +21,13 @@ void TrophyDisplay::showTrophy(TournamentType type) {
   // Titel
   tft.setTextColor(TFT_YELLOW, TFT_BLACK);
   tft.setTextSize(3);
-  tft.setCursor(20, 10);
-  tft.print("POKALSIEGER!");
+  if (type == TOURNAMENT_WORLD_CUP_2026) {
+    tft.setCursor(20, 10);
+    tft.print("WELTMEISTER!");
+  } else {
+    tft.setCursor(20, 10);
+    tft.print("POKALSIEGER!");
+  }
 
   // Pokal zeichnen
   if (type == TOURNAMENT_DFB_POKAL) {
@@ -31,12 +36,18 @@ void TrophyDisplay::showTrophy(TournamentType type) {
     tft.setTextColor(GOLD_COLOR, TFT_BLACK);
     tft.setCursor(80, 170);
     tft.print("DFB-POKAL 2025");
-  } else {
+  } else if (type == TOURNAMENT_CHAMPIONS_LEAGUE) {
     drawHenkelpott();
     tft.setTextSize(2);
     tft.setTextColor(SILVER_COLOR, TFT_BLACK);
     tft.setCursor(50, 170);
     tft.print("CHAMPIONS LEAGUE");
+  } else {
+    drawWorldCupTrophy();
+    tft.setTextSize(2);
+    tft.setTextColor(GOLD_COLOR, TFT_BLACK);
+    tft.setCursor(100, 170);
+    tft.print("WM 2026");
   }
 
   // Button
@@ -162,6 +173,74 @@ void TrophyDisplay::drawHenkelpott() {
 
   // Glanz-Effekt
   tft.fillRect(centerX - 4 * pixelSize + 2, startY + 2 * pixelSize + 2, pixelSize - 1, pixelSize * 2, TFT_WHITE);
+}
+
+void TrophyDisplay::drawWorldCupTrophy() {
+  // FIFA WM-Pokal (zentriert bei x=160)
+  int centerX = 160;
+  int startY = 40;
+  int pixelSize = 5;
+
+  // Zwei Figuren, die den Globus halten (vereinfacht)
+  // Linke Figur
+  for (int y = 0; y <= 2; y++) {
+    tft.fillRect(centerX - 6 * pixelSize, startY + y * pixelSize, pixelSize, pixelSize, GOLD_COLOR);
+    tft.fillRect(centerX - 5 * pixelSize, startY + y * pixelSize, pixelSize, pixelSize, GOLD_DARK);
+  }
+  // Rechte Figur
+  for (int y = 0; y <= 2; y++) {
+    tft.fillRect(centerX + 5 * pixelSize, startY + y * pixelSize, pixelSize, pixelSize, GOLD_DARK);
+    tft.fillRect(centerX + 6 * pixelSize, startY + y * pixelSize, pixelSize, pixelSize, GOLD_COLOR);
+  }
+
+  // Globus (Kreis oben)
+  int globusY = startY + 3 * pixelSize;
+  // Oberer Rand des Globus
+  for (int x = -4; x <= 4; x++) {
+    tft.fillRect(centerX + x * pixelSize, globusY, pixelSize, pixelSize, GOLD_COLOR);
+  }
+  // Mitte des Globus (breiter)
+  for (int y = 1; y <= 3; y++) {
+    int width = (y == 2) ? 5 : 4;
+    for (int x = -width; x <= width; x++) {
+      uint16_t color = (x == -width || x == width) ? GOLD_DARK : GOLD_COLOR;
+      tft.fillRect(centerX + x * pixelSize, globusY + y * pixelSize, pixelSize, pixelSize, color);
+    }
+  }
+  // Unterer Teil des Globus (schmaler)
+  for (int y = 4; y <= 5; y++) {
+    int width = 5 - (y - 3);
+    for (int x = -width; x <= width; x++) {
+      uint16_t color = (x == -width || x == width) ? GOLD_DARK : GOLD_COLOR;
+      tft.fillRect(centerX + x * pixelSize, globusY + y * pixelSize, pixelSize, pixelSize, color);
+    }
+  }
+
+  // Arme der Figuren zum Globus
+  tft.fillRect(centerX - 5 * pixelSize, startY + 3 * pixelSize, pixelSize, pixelSize, GOLD_COLOR);
+  tft.fillRect(centerX + 5 * pixelSize, startY + 3 * pixelSize, pixelSize, pixelSize, GOLD_COLOR);
+
+  // Stiel
+  int stielY = globusY + 6 * pixelSize;
+  for (int y = 0; y <= 3; y++) {
+    for (int x = -1; x <= 1; x++) {
+      uint16_t color = (x == 0) ? GOLD_COLOR : GOLD_DARK;
+      tft.fillRect(centerX + x * pixelSize, stielY + y * pixelSize, pixelSize, pixelSize, color);
+    }
+  }
+
+  // Fuss (breiter werdend)
+  int fussY = stielY + 4 * pixelSize;
+  for (int y = 0; y <= 2; y++) {
+    int width = 2 + y;
+    for (int x = -width; x <= width; x++) {
+      uint16_t color = (x == -width || x == width) ? GOLD_DARK : GOLD_COLOR;
+      tft.fillRect(centerX + x * pixelSize, fussY + y * pixelSize, pixelSize, pixelSize, color);
+    }
+  }
+
+  // Glanz-Effekt auf dem Globus
+  tft.fillRect(centerX - 2 * pixelSize + 2, globusY + pixelSize + 2, pixelSize - 1, pixelSize * 2, TFT_WHITE);
 }
 
 void TrophyDisplay::drawConfetti() {

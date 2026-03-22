@@ -13,12 +13,15 @@ class Menu {
     void init();
     void draw();
     void setPlayerName(const String& name);
-    int handleTouch(int16_t x, int16_t y);  // 0=Zurück, 1=Mathe, 2=Englisch
+    int handleTouch(int16_t x, int16_t y);  // 0=Zurueck, 1=Mathe, 2=Rekorde, 3=Schreiben, 4=Quiz
 
   private:
     TFT_eSPI tft;
-    Button* backButton;      // Zurück zur Profilauswahl
-    Button* menuButtons[2];  // Fächer: Mathe, Englisch
+    Button* backButton;      // Zurueck zur Profilauswahl
+    Button* matheButton;     // Mathe-Fach
+    Button* recordsButton;   // Rekordematrix
+    Button* schreibenButton; // Schreiben-Uebung
+    Button* quizButton;      // Quiz-Menue (Flaggen, Vereine, Stadien)
     String _playerName;
 };
 

@@ -17,14 +17,14 @@ class DifficultyMenu {
     DifficultyMenu();
     void init();
     void draw();
-    int handleTouch(int16_t x, int16_t y);  // 0=Zurück, 1=Bayern, 2=Dortmund, 3=Hannover
+    int handleTouch(int16_t x, int16_t y);  // 0=Zurück, 1=St.Vit, 2=Hannover, 3=Dortmund, 4=Bayern
 
     // Schwierigkeits-Daten abrufen
     static Difficulty getDifficulty(int choice);
 
   private:
     TFT_eSPI tft;
-    Button* menuButtons[3];  // Bayern, Dortmund, Hannover
+    Button* menuButtons[4];  // St.Vit, Hannover, Dortmund, Bayern
     Button* backButton;
 };
 

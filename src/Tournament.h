@@ -6,6 +6,7 @@
 #include "Button.h"
 #include "Teams.h"
 #include "mathe.h"
+#include "TournamentSave.h"
 
 // Turnier-Status
 enum TournamentState {
@@ -55,6 +56,16 @@ class Tournament {
     MatheMode getMatheMode() { return _matheMode; }
     TournamentType getTournamentType() { return _tournamentType; }
 
+    // Spieler-Team
+    void setPlayerTeam(const String& name, const String& abbrev, uint16_t color);
+    String getPlayerTeamName() { return _playerTeamName; }
+    String getPlayerTeamAbbrev() { return _playerTeamAbbrev; }
+    uint16_t getPlayerTeamColor() { return _playerTeamColor; }
+
+    // Save/Load
+    TournamentSave createSave();
+    void loadFromSave(const TournamentSave& save);
+
   private:
     TFT_eSPI tft;
     Button* kickoffButton;
@@ -69,11 +80,20 @@ class Tournament {
     int _currentRound;  // 0-basiert
     Team _currentOpponent;
 
+    // Spieler-Team
+    String _playerTeamName;
+    String _playerTeamAbbrev;
+    uint16_t _playerTeamColor;
+
     // Elfmeterschießen
     int _playerPenalties;
     int _cpuPenalties;
     int _penaltyRound;  // 1-3 (erste 3 Schüsse), dann weitere
     bool _playerShot;   // Spieler hat in dieser Runde geschossen
+
+    // Statische Speicher für geladene Gegnerdaten (weil Team const char* verwendet)
+    String _loadedOpponentName;
+    String _loadedOpponentAbbrev;
 
     void selectOpponent();
     void drawIntro();

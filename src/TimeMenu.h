@@ -10,7 +10,7 @@ class TimeMenu {
     TimeMenu();
     void init();
     void draw();
-    int handleTouch(int16_t x, int16_t y);  // 0=Zurück, 1=1Min, 2=3Min, 3=5Min
+    int handleTouch(int16_t x, int16_t y);  // 0=Zurück, 1=1Min, 2=2Min, 3=3Min
 
   private:
     TFT_eSPI tft;

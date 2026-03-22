@@ -1,16 +1,19 @@
 #include "Tournament.h"
 
 Tournament::Tournament() {
-  // Buttons erstellen
+  // Zurück-Button (oben links, konsistent mit anderen Screens)
+  backButton = new Button(10, 8, 40, 30, "<");
+  backButton->setColors(TFT_DARKGREY, TFT_WHITE);
+
+  // Anpfiff-Button
   kickoffButton = new Button(60, 180, 200, 45, "ANPFIFF!");
   kickoffButton->setColors(TFT_GREEN, 0x0000);
 
+  // Weiter-Button
   continueButton = new Button(60, 180, 200, 45, "WEITER");
   continueButton->setColors(TFT_GREEN, 0x0000);
 
-  backButton = new Button(10, 5, 60, 25, "Menu");
-  backButton->setColors(TFT_DARKGREY, TFT_WHITE);
-
+  // Buttons für Ausgeschieden-Screen
   retryButton = new Button(20, 180, 130, 45, "NOCHMAL");
   retryButton->setColors(TFT_BLUE, TFT_WHITE);
 
@@ -38,6 +41,13 @@ void Tournament::init(TournamentType type, MatheMode matheMode) {
 
   // Ersten Gegner auswählen
   selectOpponent();
+}
+
+void Tournament::setPlayerTeam(const String& name, const String& abbrev, uint16_t color) {
+  _playerTeamName = name;
+  _playerTeamAbbrev = abbrev;
+  _playerTeamColor = color;
+  Serial.printf("Tournament: Player team set to '%s' (%s)\n", name.c_str(), abbrev.c_str());
 }
 
 void Tournament::draw() {
@@ -138,9 +148,32 @@ void Tournament::selectOpponent() {
     clusterSize = CL_CLUSTER_SIZES[_currentRound];
   }
 
-  // Zufälligen Gegner aus dem Cluster wählen
-  int idx = random(0, clusterSize);
-  _currentOpponent = cluster[idx];
+  Serial.printf("selectOpponent: type=%d, round=%d, clusterSize=%d\n",
+    _tournamentType, _currentRound, clusterSize);
+
+  // Zufälligen Gegner aus dem Cluster wählen (nicht das eigene Team)
+  int maxAttempts = 20;
+  int attempts = 0;
+
+  do {
+    int idx = random(0, clusterSize);
+    _currentOpponent = cluster[idx];
+    attempts++;
+  } while (String(_currentOpponent.name) == _playerTeamName && attempts < maxAttempts);
+
+  // Falls kein anderer Gegner gefunden wurde, ersten nehmen der anders ist
+  if (String(_currentOpponent.name) == _playerTeamName) {
+    for (int i = 0; i < clusterSize; i++) {
+      if (String(cluster[i].name) != _playerTeamName) {
+        _currentOpponent = cluster[i];
+        break;
+      }
+    }
+  }
+
+  Serial.printf("selectOpponent: Selected '%s' (%s)\n",
+    _currentOpponent.name ? _currentOpponent.name : "NULL",
+    _currentOpponent.abbrev ? _currentOpponent.abbrev : "NULL");
 }
 
 void Tournament::advanceToNextRound() {
@@ -239,13 +272,13 @@ bool Tournament::handlePenalty(bool playerScored, bool cpuScored) {
 void Tournament::drawIntro() {
   tft.fillScreen(TFT_BLACK);
 
-  // Zurück-Button
+  // Zurück-Button (oben links)
   backButton->draw(&tft);
 
-  // Turnier-Name oben
-  tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+  // Turnier-Name (neben Zurück-Button)
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
   tft.setTextSize(2);
-  tft.setCursor(80, 10);
+  tft.setCursor(60, 12);
   if (_tournamentType == TOURNAMENT_DFB_POKAL) {
     tft.print("DFB-POKAL");
   } else {
@@ -253,28 +286,31 @@ void Tournament::drawIntro() {
   }
 
   // Rundenname
-  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  tft.setTextColor(TFT_YELLOW, TFT_BLACK);
   tft.setTextSize(2);
-  tft.setCursor(80, 40);
+  tft.setCursor(60, 50);
   tft.print(getCurrentRoundName());
+
+  // Spieler-Team
+  tft.setCursor(30, 80);
+  tft.setTextColor(_playerTeamColor, TFT_BLACK);
+  tft.print(_playerTeamName);
 
   // VS Anzeige
   tft.setTextSize(2);
-
-  // vs
-  tft.setCursor(150, 70);
+  tft.setCursor(145, 100);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
   tft.print("vs.");
 
   // Gegner
-  tft.setCursor(30, 95);
+  tft.setCursor(30, 120);
   tft.setTextColor(_currentOpponent.primaryColor, TFT_BLACK);
   tft.print(_currentOpponent.name);
 
   // Schwierigkeitsinfo
   tft.setTextSize(1);
   tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
-  tft.setCursor(80, 130);
+  tft.setCursor(80, 155);
   unsigned long time = getAnswerTime() / 1000;
   tft.printf("Zeit: %lu Sek | 5 Schritte", time);
 
@@ -359,15 +395,24 @@ void Tournament::drawPenalty() {
   tft.setCursor(100, 60);
   tft.printf("%d : %d", _playerPenalties, _cpuPenalties);
 
-  // Namen - Spielername aus mathe.cpp
-  extern String getPlayerName();
+  // Team-Namen statt Spielername
   tft.setTextSize(2);
-  tft.setCursor(30, 100);
-  tft.setTextColor(TFT_GREEN, TFT_BLACK);
-  tft.print(getPlayerName());
-  tft.setCursor(220, 100);
+  tft.setCursor(20, 100);
+  tft.setTextColor(_playerTeamColor, TFT_BLACK);
+  // Kürzen wenn zu lang
+  String shortName = _playerTeamName;
+  if (shortName.length() > 12) {
+    shortName = shortName.substring(0, 10) + "..";
+  }
+  tft.print(shortName);
+
+  tft.setCursor(200, 100);
   tft.setTextColor(_currentOpponent.primaryColor, TFT_BLACK);
-  tft.print("CPU");
+  String oppName = String(_currentOpponent.name);
+  if (oppName.length() > 10) {
+    oppName = oppName.substring(0, 8) + "..";
+  }
+  tft.print(oppName);
 
   // Runde
   tft.setTextSize(2);
@@ -409,4 +454,71 @@ void Tournament::drawTeamBadge(int x, int y, Team team) {
   tft.drawCircle(x, y, 25, team.secondaryColor);
   tft.fillCircle(x, y, 15, team.secondaryColor);
   tft.fillCircle(x, y, 8, team.primaryColor);
+}
+
+// ========== SAVE/LOAD ==========
+
+TournamentSave Tournament::createSave() {
+  TournamentSave save;
+  save.type = _tournamentType;
+  save.mode = _matheMode;
+  save.round = _currentRound;
+  save.opponentName = _currentOpponent.name;
+  save.opponentAbbrev = _currentOpponent.abbrev;
+  save.opponentColor = _currentOpponent.primaryColor;
+  return save;
+}
+
+void Tournament::loadFromSave(const TournamentSave& save) {
+  tft.init();
+  pinMode(TFT_BL, OUTPUT);
+  digitalWrite(TFT_BL, HIGH);
+  tft.setRotation(1);
+
+  _tournamentType = save.type;
+  _matheMode = save.mode;
+  _currentRound = save.round;
+  _state = TOURNAMENT_INTRO;
+  _playerPenalties = 0;
+  _cpuPenalties = 0;
+  _penaltyRound = 0;
+  _playerShot = false;
+
+  // Gegner aus Save wiederherstellen - in statische Member kopieren
+  _loadedOpponentName = save.opponentName;
+  _loadedOpponentAbbrev = save.opponentAbbrev;
+
+  // Falls Abkürzung fehlt (alter Save), im Cluster suchen
+  if (_loadedOpponentAbbrev.length() == 0 && _loadedOpponentName.length() > 0) {
+    const Team* cluster;
+    int clusterSize;
+    if (_tournamentType == TOURNAMENT_DFB_POKAL) {
+      cluster = DFB_CLUSTERS[_currentRound];
+      clusterSize = DFB_CLUSTER_SIZES[_currentRound];
+    } else {
+      cluster = CL_CLUSTERS[_currentRound];
+      clusterSize = CL_CLUSTER_SIZES[_currentRound];
+    }
+    // Team im Cluster suchen
+    for (int i = 0; i < clusterSize; i++) {
+      if (String(cluster[i].name) == _loadedOpponentName) {
+        _loadedOpponentAbbrev = cluster[i].abbrev;
+        break;
+      }
+    }
+    // Falls immer noch nicht gefunden, Fallback auf ersten 3 Buchstaben
+    if (_loadedOpponentAbbrev.length() == 0) {
+      _loadedOpponentAbbrev = _loadedOpponentName.substring(0, 3);
+      _loadedOpponentAbbrev.toUpperCase();
+    }
+  }
+
+  // Dann Pointer auf die statischen Strings setzen
+  _currentOpponent.name = _loadedOpponentName.c_str();
+  _currentOpponent.abbrev = _loadedOpponentAbbrev.c_str();
+  _currentOpponent.primaryColor = save.opponentColor;
+  _currentOpponent.secondaryColor = TFT_WHITE;
+
+  Serial.printf("Tournament: Loaded from save - round %d vs %s (%s)\n",
+    _currentRound, _currentOpponent.name, _currentOpponent.abbrev);
 }

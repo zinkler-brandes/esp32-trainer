@@ -3,6 +3,7 @@
 #include "mathe.h"
 #include "Touch.h"
 #include "MatheMenu.h"
+#include "EinzelspielMenu.h"
 #include "DifficultyMenu.h"
 #include "TimeMenu.h"
 #include "TournamentMenu.h"
@@ -14,6 +15,18 @@
 #include "ProfileManageScreen.h"
 #include "KeyboardScreen.h"
 #include "ConfirmDialog.h"
+#include "TournamentContinueDialog.h"
+#include "TeamSelectScreen.h"
+#include "WorldCupTournament.h"
+#include "WMTeamSelectScreen.h"
+#include "TournamentIntro.h"
+#include "RecordsScreen.h"
+#include "Schreiben.h"
+#include "FlagQuiz.h"
+#include "ClubQuiz.h"
+#include "QuizMenu.h"
+#include "StadionQuiz.h"
+#include "KennzeichenQuiz.h"
 
 // Modi
 enum AppMode {
@@ -23,24 +36,49 @@ enum AppMode {
   MODE_PROFILE_MANAGE,       // Profilverwaltung
   MODE_CONFIRM_DELETE,       // Lösch-Bestätigung
   MODE_CONFIRM_RESET,        // Reset-Bestätigung
+  MODE_CONFIRM_EXIT,         // Exit-Bestätigung (Spiel abbrechen)
   // Spiel-Modi
   MODE_MENU,
   MODE_MATHE_SELECTION,
+  MODE_EINZELSPIEL_MODUS,
   MODE_DIFFICULTY_SELECTION,
   MODE_TIME_SELECTION,
   MODE_MATHE,
   // Turnier-Modi
   MODE_TOURNAMENT_SELECTION,
+  MODE_TOURNAMENT_CONTINUE,        // Fortsetzen-Dialog
+  MODE_TEAM_SELECT,                // Teamauswahl
   MODE_TOURNAMENT_MATHE_SELECTION,
   MODE_TOURNAMENT_INTRO,
   MODE_TOURNAMENT,
   MODE_TOURNAMENT_PENALTY,
-  MODE_TROPHY
+  MODE_TROPHY,
+  // WM 2026 Modi
+  MODE_WM_CONTINUE,                // WM Fortsetzen-Dialog
+  MODE_WM_TEAM_SELECT,             // WM Teamauswahl
+  MODE_WM_MATHE_SELECTION,         // WM Rechenart
+  MODE_WM_GROUP_INTRO,             // WM Gruppenphase Intro
+  MODE_WM_MATCH_INTRO,             // WM Spielvorschau
+  MODE_WM_PLAYING,                 // WM Spiel laeuft
+  MODE_WM_GROUP_TABLE,             // WM Gruppentabelle
+  MODE_WM_KNOCKOUT_INTRO,          // WM K.O.-Runde Intro
+  MODE_WM_PENALTY,                 // WM Elfmeterschiessen
+  MODE_WM_ELIMINATED,              // WM Ausgeschieden
+  MODE_WM_CHAMPION,                // WM Weltmeister
+  // Sonstige Modi
+  MODE_RECORDS,                    // Rekordematrix
+  MODE_SCHREIBEN,                  // Schreiben-Uebung
+  MODE_QUIZ_MENU,                  // Quiz-Auswahl
+  MODE_FLAG_QUIZ,                  // WM Flaggen-Quiz
+  MODE_CLUB_QUIZ,                  // Vereinsquiz (Bundesland raten)
+  MODE_STADION_QUIZ,               // Stadion-Quiz
+  MODE_KENNZEICHEN_QUIZ            // Kennzeichen-Quiz
 };
 
 // Globale Objekte
 Menu menu;
 MatheMenu matheMenu;
+EinzelspielMenu einzelspielMenu;
 DifficultyMenu difficultyMenu;
 TimeMenu timeMenu;
 Mathe matheTrainer;
@@ -49,6 +87,15 @@ TournamentMenu tournamentMenu;
 TournamentMatheModeMenu tournamentMatheModeMenu;
 Tournament tournament;
 TrophyDisplay trophyDisplay;
+WorldCupTournament worldCupTournament;
+WMTeamSelectScreen wmTeamSelectScreen;
+TournamentIntro tournamentIntro;
+Schreiben schreiben;
+FlagQuiz flagQuiz;
+ClubQuiz clubQuiz;
+QuizMenu quizMenu;
+StadionQuiz stadionQuiz;
+KennzeichenQuiz kennzeichenQuiz;
 
 // Profil-System
 SDManager sdManager;
@@ -57,6 +104,9 @@ ProfileSelectScreen profileSelectScreen;
 ProfileManageScreen profileManageScreen;
 KeyboardScreen keyboardScreen;
 ConfirmDialog confirmDialog;
+TournamentContinueDialog tournamentContinueDialog;
+TeamSelectScreen teamSelectScreen;
+RecordsScreen recordsScreen;
 
 // Aktuelles Profil
 Profile currentProfile;
@@ -75,8 +125,14 @@ int tournamentCpuGoals;
 // Profil, das gelöscht werden soll
 int profileToDelete = 0;
 
-// Setter für Profilname in mathe.cpp
+// Modus vor Exit-Bestätigung (um zu wissen ob Turnier oder Einzelspiel)
+AppMode modeBeforeExit = MODE_MENU;
+
+// Setter für Profilname und Gegner in mathe.cpp
 extern void setPlayerName(const String& name);
+extern void setPlayerTeamColor(uint16_t color);
+extern void setOpponentName(const String& name);
+extern void setOpponentColor(uint16_t color);
 
 void showProfileSelect() {
   profileSelectScreen.setProfileManager(&profileManager);
@@ -117,6 +173,8 @@ void setup() {
   profileManageScreen.init();
   keyboardScreen.init();
   confirmDialog.init();
+  tournamentContinueDialog.init();
+  tournamentIntro.init();
 
   if (sdReady) {
     // ProfileManager initialisieren
@@ -156,8 +214,9 @@ void loop() {
   static unsigned long lastTouch = 0;
   static unsigned long lastTimerUpdate = 0;
 
-  // Timer für Mathe-Trainer prüfen (alle 500ms)
-  if ((currentMode == MODE_MATHE || currentMode == MODE_TOURNAMENT) && millis() - lastTimerUpdate > 500) {
+  // Timer fuer Mathe-Trainer pruefen (alle 500ms, auch im Penalty-Modus)
+  if ((currentMode == MODE_MATHE || currentMode == MODE_TOURNAMENT || currentMode == MODE_TOURNAMENT_PENALTY ||
+       currentMode == MODE_WM_PLAYING || currentMode == MODE_WM_PENALTY) && millis() - lastTimerUpdate > 500) {
     lastTimerUpdate = millis();
     matheTrainer.update();
   }
@@ -286,6 +345,38 @@ void loop() {
             }
             break;
 
+          case MODE_CONFIRM_EXIT:
+            {
+              int choice = confirmDialog.handleTouch(x, y);
+              if (choice == 1) {
+                // Ja - Spiel abbrechen
+                if (modeBeforeExit == MODE_TOURNAMENT) {
+                  // Turnier abbrechen -> zurueck zur Turnier-Auswahl
+                  // Save bleibt erhalten (letzte gewonnene Runde)
+                  Serial.println("Tournament exit confirmed");
+                  tournamentMenu.init();
+                  tournamentMenu.draw();
+                  currentMode = MODE_TOURNAMENT_SELECTION;
+                } else if (modeBeforeExit == MODE_WM_PLAYING) {
+                  // WM abbrechen -> zurueck zur Turnier-Auswahl
+                  Serial.println("World Cup exit confirmed");
+                  tournamentMenu.init();
+                  tournamentMenu.draw();
+                  currentMode = MODE_TOURNAMENT_SELECTION;
+                } else {
+                  // Einzelspiel abbrechen -> zurueck zum Menue
+                  Serial.println("Game exit confirmed");
+                  menu.draw();
+                  currentMode = MODE_MENU;
+                }
+              } else if (choice == 2) {
+                // Nein - zurueck zum Spiel
+                matheTrainer.redrawScreen();
+                currentMode = modeBeforeExit;
+              }
+            }
+            break;
+
           // ========== HAUPTMENÜ ==========
 
           case MODE_MENU:
@@ -302,9 +393,27 @@ void loop() {
                 matheMenu.draw();
                 currentMode = MODE_MATHE_SELECTION;
               } else if (choice == 2) {
-                // Englisch (noch nicht implementiert)
-                Serial.println("Englisch - coming soon");
-                // TODO: Englisch-Menü
+                // Rekordematrix öffnen
+                Serial.println("Opening Records Screen");
+                RecordsMatrix records = profileManager.getRecords(currentProfile.id);
+                recordsScreen.init(records, currentProfile.name,
+                                   currentProfile.flagQuizBestMedal,
+                                   currentProfile.clubQuizBestMedal,
+                                   currentProfile.stadionQuizBestMedal,
+                                   currentProfile.kennzeichenQuizBestMedal);
+                recordsScreen.draw();
+                currentMode = MODE_RECORDS;
+              } else if (choice == 3) {
+                // Schreiben-Uebung oeffnen
+                Serial.println("Opening Schreiben");
+                schreiben.init();
+                currentMode = MODE_SCHREIBEN;
+              } else if (choice == 4) {
+                // Quiz-Menue oeffnen
+                Serial.println("Opening Quiz Menu");
+                quizMenu.init();
+                quizMenu.draw();
+                currentMode = MODE_QUIZ_MENU;
               }
             }
             break;
@@ -318,20 +427,12 @@ void loop() {
                 menu.draw();
                 currentMode = MODE_MENU;
               } else if (matheChoice == 1) {
-                // +/- Modus gewählt -> weiter zu Schwierigkeit
-                Serial.println("Selected: +/-");
-                selectedMatheMode = MATHE_PLUS_MINUS;
-                difficultyMenu.init();
-                difficultyMenu.draw();
-                currentMode = MODE_DIFFICULTY_SELECTION;
+                // Einzelspiel -> Modus wählen (+/- oder 1x1)
+                Serial.println("Opening Einzelspiel Menu");
+                einzelspielMenu.init();
+                einzelspielMenu.draw();
+                currentMode = MODE_EINZELSPIEL_MODUS;
               } else if (matheChoice == 2) {
-                // 1x1 Modus gewählt -> weiter zu Schwierigkeit
-                Serial.println("Selected: 1x1");
-                selectedMatheMode = MATHE_MULTIPLY;
-                difficultyMenu.init();
-                difficultyMenu.draw();
-                currentMode = MODE_DIFFICULTY_SELECTION;
-              } else if (matheChoice == 3) {
                 // Pokal-Modus
                 Serial.println("Opening Tournament Menu");
                 tournamentMenu.init();
@@ -341,16 +442,64 @@ void loop() {
             }
             break;
 
+          case MODE_EINZELSPIEL_MODUS:
+            {
+              int choice = einzelspielMenu.handleTouch(x, y);
+              if (choice == 0) {
+                // Zurück zur Mathe-Auswahl
+                Serial.println("Returning to Mathe Selection");
+                matheMenu.draw();
+                currentMode = MODE_MATHE_SELECTION;
+              } else if (choice == 1) {
+                // +/- Modus gewählt -> weiter zu Schwierigkeit
+                Serial.println("Selected: +/-");
+                selectedMatheMode = MATHE_PLUS_MINUS;
+                difficultyMenu.init();
+                difficultyMenu.draw();
+                currentMode = MODE_DIFFICULTY_SELECTION;
+              } else if (choice == 2) {
+                // 1x1 Modus gewählt -> weiter zu Schwierigkeit
+                Serial.println("Selected: 1x1");
+                selectedMatheMode = MATHE_MULTIPLY;
+                difficultyMenu.init();
+                difficultyMenu.draw();
+                currentMode = MODE_DIFFICULTY_SELECTION;
+              } else if (choice == 3) {
+                // 1:1 Modus gewählt -> weiter zu Schwierigkeit
+                Serial.println("Selected: 1:1");
+                selectedMatheMode = MATHE_DIVIDE;
+                difficultyMenu.init();
+                difficultyMenu.draw();
+                currentMode = MODE_DIFFICULTY_SELECTION;
+              } else if (choice == 4) {
+                // Alle Modus gewählt -> weiter zu Schwierigkeit
+                Serial.println("Selected: Alle");
+                selectedMatheMode = MATHE_ALL;
+                difficultyMenu.init();
+                difficultyMenu.draw();
+                currentMode = MODE_DIFFICULTY_SELECTION;
+              }
+            }
+            break;
+
           case MODE_DIFFICULTY_SELECTION:
             {
               int diffChoice = difficultyMenu.handleTouch(x, y);
               if (diffChoice == 0) {
-                // Zurück zur Modus-Auswahl
-                Serial.println("Returning to Mathe Selection");
-                matheMenu.draw();
-                currentMode = MODE_MATHE_SELECTION;
-              } else if (diffChoice >= 1 && diffChoice <= 3) {
-                // Schwierigkeit gewählt -> weiter zu Zeit
+                // Zurück zur Einzelspiel-Modus-Auswahl
+                Serial.println("Returning to Einzelspiel Menu");
+                einzelspielMenu.draw();
+                currentMode = MODE_EINZELSPIEL_MODUS;
+              } else if (diffChoice == 1) {
+                // St. Vit (erlernen) -> Direkt starten mit 1 Minute
+                Serial.println("Selected: St. Vit (erlernen)");
+                selectedDifficulty = 1;
+                Difficulty diff = DifficultyMenu::getDifficulty(1);
+                matheTrainer.clearTournamentMode();  // Keine Turnier-Logos
+                matheTrainer.init(selectedMatheMode, 60000, diff.answerTimeMs, diff.stepsForGoal);
+                currentMode = MODE_MATHE;
+              } else if (diffChoice >= 2 && diffChoice <= 4) {
+                // Hannover, Dortmund, Bayern -> weiter zu Zeit
                 Serial.printf("Selected difficulty: %d\n", diffChoice);
                 selectedDifficulty = diffChoice;
                 timeMenu.init();
@@ -373,15 +522,16 @@ void loop() {
                 unsigned long duration;
                 switch (timeChoice) {
                   case 1: duration = 60000; break;   // 1 Minute
-                  case 2: duration = 180000; break;  // 3 Minuten
-                  case 3: duration = 300000; break;  // 5 Minuten
-                  default: duration = 180000; break;
+                  case 2: duration = 120000; break;  // 2 Minuten
+                  case 3: duration = 180000; break;  // 3 Minuten
+                  default: duration = 120000; break;
                 }
 
                 Difficulty diff = DifficultyMenu::getDifficulty(selectedDifficulty);
                 Serial.printf("Starting game: mode=%d, time=%lu, answerTime=%lu, steps=%d\n",
                               selectedMatheMode, duration, diff.answerTimeMs, diff.stepsForGoal);
 
+                matheTrainer.clearTournamentMode();  // Keine Turnier-Logos
                 matheTrainer.init(selectedMatheMode, duration, diff.answerTimeMs, diff.stepsForGoal);
                 currentMode = MODE_MATHE;
               }
@@ -390,11 +540,17 @@ void loop() {
 
           case MODE_MATHE:
             {
-              bool returnToMenu = matheTrainer.handleButtonPress(x, y);
-              if (returnToMenu) {
+              int result = matheTrainer.handleButtonPress(x, y);
+              if (result == 1) {
+                // Home (nach Game Over)
                 Serial.println("Returning to menu");
                 menu.draw();
                 currentMode = MODE_MENU;
+              } else if (result == 2) {
+                // Exit angefragt
+                modeBeforeExit = MODE_MATHE;
+                confirmDialog.show("ABBRECHEN", "Spiel wirklich beenden?");
+                currentMode = MODE_CONFIRM_EXIT;
               }
             }
             break;
@@ -405,22 +561,133 @@ void loop() {
             {
               int choice = tournamentMenu.handleTouch(x, y);
               if (choice == 0) {
-                // Zurück zum Hauptmenü
+                // Zurueck zum Hauptmenue
                 menu.draw();
                 currentMode = MODE_MENU;
               } else if (choice == 1) {
-                // DFB-Pokal -> Mathe-Modus wählen
+                // DFB-Pokal gewaehlt
                 selectedTournamentType = TOURNAMENT_DFB_POKAL;
+                // Pruefen ob Spielstand existiert
+                if (profileManager.hasTournamentSave(currentProfile.id, TOURNAMENT_DFB_POKAL)) {
+                  TournamentSave save = profileManager.loadTournamentSave(currentProfile.id, TOURNAMENT_DFB_POKAL);
+                  tournamentContinueDialog.show(save);
+                  currentMode = MODE_TOURNAMENT_CONTINUE;
+                } else {
+                  // Kein Save -> Teamauswahl
+                  teamSelectScreen.init(TOURNAMENT_DFB_POKAL, currentProfile.favTeamDFB);
+                  teamSelectScreen.draw();
+                  currentMode = MODE_TEAM_SELECT;
+                }
+              } else if (choice == 2) {
+                // Champions League gewaehlt
+                selectedTournamentType = TOURNAMENT_CHAMPIONS_LEAGUE;
+                // Pruefen ob Spielstand existiert
+                if (profileManager.hasTournamentSave(currentProfile.id, TOURNAMENT_CHAMPIONS_LEAGUE)) {
+                  TournamentSave save = profileManager.loadTournamentSave(currentProfile.id, TOURNAMENT_CHAMPIONS_LEAGUE);
+                  tournamentContinueDialog.show(save);
+                  currentMode = MODE_TOURNAMENT_CONTINUE;
+                } else {
+                  // Kein Save -> Teamauswahl
+                  teamSelectScreen.init(TOURNAMENT_CHAMPIONS_LEAGUE, currentProfile.favTeamCL);
+                  teamSelectScreen.draw();
+                  currentMode = MODE_TEAM_SELECT;
+                }
+              } else if (choice == 3) {
+                // WM 2026 gewaehlt
+                selectedTournamentType = TOURNAMENT_WORLD_CUP_2026;
+                // Pruefen ob WM-Spielstand existiert
+                if (profileManager.hasWorldCupSave(currentProfile.id)) {
+                  WorldCupSave save = profileManager.loadWorldCupSave(currentProfile.id);
+                  tournamentContinueDialog.showWC(save);
+                  currentMode = MODE_WM_CONTINUE;
+                } else {
+                  // Kein Save -> Teamauswahl
+                  wmTeamSelectScreen.init(currentProfile.favTeamWC);
+                  wmTeamSelectScreen.draw();
+                  currentMode = MODE_WM_TEAM_SELECT;
+                }
+              }
+            }
+            break;
+
+          case MODE_TOURNAMENT_CONTINUE:
+            {
+              int choice = tournamentContinueDialog.handleTouch(x, y);
+              if (choice == 1) {
+                // Fortsetzen - Save laden und Spielerteam setzen
+                TournamentSave save = profileManager.loadTournamentSave(currentProfile.id, selectedTournamentType);
+                tournament.loadFromSave(save);
+                // Spielerteam aus Profil setzen
+                FavoriteTeam favTeam = (selectedTournamentType == TOURNAMENT_DFB_POKAL)
+                  ? currentProfile.favTeamDFB : currentProfile.favTeamCL;
+                tournament.setPlayerTeam(favTeam.name, favTeam.abbrev, favTeam.primaryColor);
+                tournamentIntro.showIntro(selectedTournamentType, &touch);
+                tournament.draw();
+                currentMode = MODE_TOURNAMENT_INTRO;
+              } else if (choice == 2) {
+                // Neu starten - Save löschen, Teamauswahl
+                profileManager.deleteTournamentSave(currentProfile.id, selectedTournamentType);
+                FavoriteTeam favTeam = (selectedTournamentType == TOURNAMENT_DFB_POKAL)
+                  ? currentProfile.favTeamDFB : currentProfile.favTeamCL;
+                teamSelectScreen.init(selectedTournamentType, favTeam);
+                teamSelectScreen.draw();
+                currentMode = MODE_TEAM_SELECT;
+              }
+            }
+            break;
+
+          case MODE_WM_CONTINUE:
+            {
+              int choice = tournamentContinueDialog.handleTouch(x, y);
+              if (choice == 1) {
+                // Fortsetzen - WM-Save laden
+                WorldCupSave save = profileManager.loadWorldCupSave(currentProfile.id);
+                worldCupTournament.loadFromSave(save);
+                worldCupTournament.draw();
+                // Basierend auf State zum richtigen Modus wechseln
+                WCState state = worldCupTournament.getState();
+                if (state == WC_GROUP_TABLE) {
+                  currentMode = MODE_WM_GROUP_TABLE;
+                } else if (state == WC_KNOCKOUT_INTRO) {
+                  currentMode = MODE_WM_KNOCKOUT_INTRO;
+                } else if (state == WC_GROUP_COMPLETE) {
+                  currentMode = MODE_WM_GROUP_INTRO;
+                } else {
+                  currentMode = MODE_WM_MATCH_INTRO;
+                }
+              } else if (choice == 2) {
+                // Neu starten - WM-Save loeschen, Teamauswahl
+                profileManager.deleteWorldCupSave(currentProfile.id);
+                wmTeamSelectScreen.init(currentProfile.favTeamWC);
+                wmTeamSelectScreen.draw();
+                currentMode = MODE_WM_TEAM_SELECT;
+              }
+            }
+            break;
+
+          case MODE_TEAM_SELECT:
+            {
+              int choice = teamSelectScreen.handleTouch(x, y);
+              if (choice == 0) {
+                // Zurück zur Turnier-Auswahl
+                tournamentMenu.init();
+                tournamentMenu.draw();
+                currentMode = MODE_TOURNAMENT_SELECTION;
+              } else if (choice == 1) {
+                // Team gewählt - speichern
+                FavoriteTeam team = teamSelectScreen.getSelectedTeam();
+                profileManager.setFavoriteTeam(currentProfile.id, selectedTournamentType, team);
+                // Profil aktualisieren
+                if (selectedTournamentType == TOURNAMENT_DFB_POKAL) {
+                  currentProfile.favTeamDFB = team;
+                } else {
+                  currentProfile.favTeamCL = team;
+                }
+
+                // Weiter zum Mathe-Modus (fuer beide: DFB und CL)
                 tournamentMatheModeMenu.init();
                 tournamentMatheModeMenu.draw();
                 currentMode = MODE_TOURNAMENT_MATHE_SELECTION;
-              } else if (choice == 2) {
-                // Champions League -> direkt mit MIXED starten
-                selectedTournamentType = TOURNAMENT_CHAMPIONS_LEAGUE;
-                selectedMatheMode = MATHE_MIXED;
-                tournament.init(selectedTournamentType, selectedMatheMode);
-                tournament.draw();
-                currentMode = MODE_TOURNAMENT_INTRO;
               }
             }
             break;
@@ -428,20 +695,45 @@ void loop() {
           case MODE_TOURNAMENT_MATHE_SELECTION:
             {
               int choice = tournamentMatheModeMenu.handleTouch(x, y);
+              // Korrektes Lieblingsteam basierend auf Turnier
+              FavoriteTeam favTeam = (selectedTournamentType == TOURNAMENT_DFB_POKAL)
+                ? currentProfile.favTeamDFB : currentProfile.favTeamCL;
+
               if (choice == 0) {
-                // Zurück zur Turnier-Auswahl
-                tournamentMenu.draw();
-                currentMode = MODE_TOURNAMENT_SELECTION;
+                // Zurück zur Teamauswahl
+                teamSelectScreen.init(selectedTournamentType, favTeam);
+                teamSelectScreen.draw();
+                currentMode = MODE_TEAM_SELECT;
               } else if (choice == 1) {
                 // +/- gewählt
                 selectedMatheMode = MATHE_PLUS_MINUS;
                 tournament.init(selectedTournamentType, selectedMatheMode);
+                tournament.setPlayerTeam(favTeam.name, favTeam.abbrev, favTeam.primaryColor);
+                tournamentIntro.showIntro(selectedTournamentType, &touch);
                 tournament.draw();
                 currentMode = MODE_TOURNAMENT_INTRO;
               } else if (choice == 2) {
                 // 1x1 gewählt
                 selectedMatheMode = MATHE_MULTIPLY;
                 tournament.init(selectedTournamentType, selectedMatheMode);
+                tournament.setPlayerTeam(favTeam.name, favTeam.abbrev, favTeam.primaryColor);
+                tournamentIntro.showIntro(selectedTournamentType, &touch);
+                tournament.draw();
+                currentMode = MODE_TOURNAMENT_INTRO;
+              } else if (choice == 3) {
+                // 1:1 gewählt (Division)
+                selectedMatheMode = MATHE_DIVIDE;
+                tournament.init(selectedTournamentType, selectedMatheMode);
+                tournament.setPlayerTeam(favTeam.name, favTeam.abbrev, favTeam.primaryColor);
+                tournamentIntro.showIntro(selectedTournamentType, &touch);
+                tournament.draw();
+                currentMode = MODE_TOURNAMENT_INTRO;
+              } else if (choice == 4) {
+                // Alle gewählt (Gemischt)
+                selectedMatheMode = MATHE_ALL;
+                tournament.init(selectedTournamentType, selectedMatheMode);
+                tournament.setPlayerTeam(favTeam.name, favTeam.abbrev, favTeam.primaryColor);
+                tournamentIntro.showIntro(selectedTournamentType, &touch);
                 tournament.draw();
                 currentMode = MODE_TOURNAMENT_INTRO;
               }
@@ -457,17 +749,27 @@ void loop() {
                 currentMode = MODE_MENU;
               } else if (choice == 1) {
                 // Anpfiff! - Spiel starten
-                // 2 Minuten regulär + 10-35 Sekunden Nachspielzeit
+                // Spielerteam für Anzeige setzen (Abkürzung für kompakte Darstellung)
+                setPlayerName(tournament.getPlayerTeamAbbrev());
+                setPlayerTeamColor(tournament.getPlayerTeamColor());
+                // Gegner setzen
+                Team opponent = tournament.getCurrentOpponent();
+                setOpponentName(opponent.abbrev);
+                setOpponentColor(opponent.primaryColor);
+
+                // 90 Sekunden regulär + 10-35 Sekunden Nachspielzeit
                 int nachspielzeitSek = random(10, 36);  // 10-35 Sek
-                Serial.printf("Spielzeit: 2:00 + %d Sek Nachspielzeit\n", nachspielzeitSek);
+                Serial.printf("Spielzeit: 1:30 + %d Sek Nachspielzeit\n", nachspielzeitSek);
 
                 matheTrainer.init(
                   tournament.getMatheMode(),
-                  120000,  // 2 Minuten reguläre Spielzeit
+                  90000,  // 90 Sekunden reguläre Spielzeit
                   tournament.getAnswerTime(),
                   tournament.getStepsForGoal(),
                   nachspielzeitSek
                 );
+                // Logos auf Scoreboard aktivieren
+                matheTrainer.setTournamentMode(selectedTournamentType);
                 currentMode = MODE_TOURNAMENT;
               }
             }
@@ -476,7 +778,15 @@ void loop() {
           case MODE_TOURNAMENT:
             {
               // Touch verarbeiten (Numpad etc.)
-              matheTrainer.handleButtonPress(x, y);
+              int result = matheTrainer.handleButtonPress(x, y);
+
+              // Exit angefragt?
+              if (result == 2) {
+                modeBeforeExit = MODE_TOURNAMENT;
+                confirmDialog.show("ABBRECHEN", "Turnier wirklich beenden?");
+                currentMode = MODE_CONFIRM_EXIT;
+                break;
+              }
 
               // Prüfen ob Spiel vorbei (Timer abgelaufen)
               if (matheTrainer.isGameOver()) {
@@ -491,6 +801,9 @@ void loop() {
 
                 // Je nach Ergebnis weiterleiten
                 if (tournament.getState() == TOURNAMENT_CHAMPION) {
+                  // Turnier gewonnen -> Save löschen + Rekord eintragen
+                  profileManager.deleteTournamentSave(currentProfile.id, selectedTournamentType);
+                  profileManager.recordTournamentWin(currentProfile.id, selectedTournamentType, selectedMatheMode);
                   trophyDisplay.init();
                   trophyDisplay.showTrophy(selectedTournamentType);
                   currentMode = MODE_TROPHY;
@@ -498,13 +811,24 @@ void loop() {
                   // Elfmeterschießen starten
                   tournament.draw();
                   delay(2000);  // Kurz "ELFMETERSCHIESSEN" zeigen
+                  // Gegner-Info für Penalty setzen
+                  Team opponent = tournament.getCurrentOpponent();
+                  setOpponentName(opponent.abbrev);
+                  setOpponentColor(opponent.primaryColor);
                   matheTrainer.initPenalty(
                     tournament.getMatheMode(),
                     tournament.getAnswerTime()
                   );
                   currentMode = MODE_TOURNAMENT_PENALTY;
+                } else if (tournament.getState() == TOURNAMENT_ROUND_WON) {
+                  // Runde gewonnen -> Save speichern (nächste Runde)
+                  TournamentSave save = tournament.createSave();
+                  profileManager.saveTournament(currentProfile.id, save);
+                  tournament.draw();
+                  currentMode = MODE_TOURNAMENT_INTRO;
                 } else {
-                  // ROUND_WON oder ROUND_LOST
+                  // ROUND_LOST -> Save löschen
+                  profileManager.deleteTournamentSave(currentProfile.id, selectedTournamentType);
                   tournament.draw();
                   currentMode = MODE_TOURNAMENT_INTRO;
                 }
@@ -515,7 +839,15 @@ void loop() {
           case MODE_TOURNAMENT_PENALTY:
             {
               // Elfmeterschießen - Numpad für Aufgabe
-              matheTrainer.handleButtonPress(x, y);
+              int result = matheTrainer.handleButtonPress(x, y);
+
+              // Exit angefragt?
+              if (result == 2) {
+                modeBeforeExit = MODE_TOURNAMENT;  // Bei Exit zurück zur Turnier-Auswahl
+                confirmDialog.show("ABBRECHEN", "Turnier wirklich beenden?");
+                currentMode = MODE_CONFIRM_EXIT;
+                break;
+              }
 
               // Prüfen ob Antwort gegeben wurde
               if (matheTrainer.isPenaltyAnswered()) {
@@ -540,15 +872,30 @@ void loop() {
                 if (shootoutDone) {
                   // Elfmeterschießen beendet
                   if (tournament.getState() == TOURNAMENT_CHAMPION) {
+                    // Gewonnen -> Save löschen + Rekord eintragen
+                    profileManager.deleteTournamentSave(currentProfile.id, selectedTournamentType);
+                    profileManager.recordTournamentWin(currentProfile.id, selectedTournamentType, selectedMatheMode);
                     trophyDisplay.init();
                     trophyDisplay.showTrophy(selectedTournamentType);
                     currentMode = MODE_TROPHY;
+                  } else if (tournament.getState() == TOURNAMENT_ROUND_WON) {
+                    // Runde gewonnen -> Save speichern
+                    TournamentSave save = tournament.createSave();
+                    profileManager.saveTournament(currentProfile.id, save);
+                    tournament.draw();
+                    currentMode = MODE_TOURNAMENT_INTRO;
                   } else {
+                    // Verloren -> Save löschen
+                    profileManager.deleteTournamentSave(currentProfile.id, selectedTournamentType);
                     tournament.draw();
                     currentMode = MODE_TOURNAMENT_INTRO;
                   }
                 } else {
                   // Nächster Elfmeter - neues Penalty-Spiel starten
+                  // Gegner-Info aktualisieren
+                  Team opponent = tournament.getCurrentOpponent();
+                  setOpponentName(opponent.abbrev);
+                  setOpponentColor(opponent.primaryColor);
                   matheTrainer.initPenalty(
                     tournament.getMatheMode(),
                     tournament.getAnswerTime()
@@ -565,6 +912,476 @@ void loop() {
                 menu.draw();
                 currentMode = MODE_MENU;
               }
+            }
+            break;
+
+          // ========== WM 2026 MODI ==========
+
+          case MODE_WM_TEAM_SELECT:
+            {
+              int choice = wmTeamSelectScreen.handleTouch(x, y);
+              if (choice == 0) {
+                // Zurueck zur Turnier-Auswahl
+                tournamentMenu.init();
+                tournamentMenu.draw();
+                currentMode = MODE_TOURNAMENT_SELECTION;
+              } else if (choice == 1) {
+                // Team gewaehlt - speichern
+                FavoriteTeam team = wmTeamSelectScreen.getSelectedTeam();
+                profileManager.setFavoriteTeam(currentProfile.id, TOURNAMENT_WORLD_CUP_2026, team);
+                currentProfile.favTeamWC = team;
+
+                // Weiter zur Rechenart-Auswahl
+                tournamentMatheModeMenu.init();
+                tournamentMatheModeMenu.draw();
+                currentMode = MODE_WM_MATHE_SELECTION;
+              }
+            }
+            break;
+
+          case MODE_WM_MATHE_SELECTION:
+            {
+              int choice = tournamentMatheModeMenu.handleTouch(x, y);
+              if (choice == 0) {
+                // Zurueck zur Teamauswahl
+                wmTeamSelectScreen.init(currentProfile.favTeamWC);
+                wmTeamSelectScreen.draw();
+                currentMode = MODE_WM_TEAM_SELECT;
+              } else if (choice >= 1 && choice <= 4) {
+                // Rechenart gewaehlt
+                if (choice == 1) selectedMatheMode = MATHE_PLUS_MINUS;
+                else if (choice == 2) selectedMatheMode = MATHE_MULTIPLY;
+                else if (choice == 3) selectedMatheMode = MATHE_DIVIDE;
+                else selectedMatheMode = MATHE_ALL;
+
+                // WM-Turnier starten
+                int teamIndex = wmTeamSelectScreen.getSelectedTeamIndex();
+                worldCupTournament.init(selectedMatheMode, teamIndex);
+                worldCupTournament.draw();
+                currentMode = MODE_WM_GROUP_INTRO;
+              }
+            }
+            break;
+
+          case MODE_WM_GROUP_INTRO:
+            {
+              int choice = worldCupTournament.handleTouch(x, y);
+              if (choice == 0) {
+                // Zurueck zur Turnier-Auswahl
+                tournamentMenu.init();
+                tournamentMenu.draw();
+                currentMode = MODE_TOURNAMENT_SELECTION;
+              } else if (choice == 1 || worldCupTournament.getState() == WC_MATCH_INTRO) {
+                // Match Intro anzeigen
+                worldCupTournament.draw();
+                currentMode = MODE_WM_MATCH_INTRO;
+              }
+            }
+            break;
+
+          case MODE_WM_MATCH_INTRO:
+            {
+              int choice = worldCupTournament.handleTouch(x, y);
+              if (choice == 0) {
+                // Zurueck zum Menue
+                tournamentMenu.init();
+                tournamentMenu.draw();
+                currentMode = MODE_TOURNAMENT_SELECTION;
+              } else if (choice == 1) {
+                // Anpfiff! - Spiel starten
+                const WMTeam& playerTeam = worldCupTournament.getPlayerTeam();
+                const WMTeam& opponent = worldCupTournament.getCurrentOpponent();
+
+                setPlayerName(playerTeam.abbrev);
+                setPlayerTeamColor(getTextColorForBg(playerTeam.shirtColor));
+                setOpponentName(opponent.abbrev);
+                setOpponentColor(getTextColorForBg(opponent.shirtColor));
+
+                // Spielzeit: 90 Sek + Nachspielzeit
+                int nachspielzeitSek = random(10, 36);
+                Serial.printf("WM Spielzeit: 1:30 + %d Sek Nachspielzeit\n", nachspielzeitSek);
+
+                matheTrainer.init(
+                  worldCupTournament.getMatheMode(),
+                  90000,  // 90 Sekunden
+                  worldCupTournament.getAnswerTime(),
+                  worldCupTournament.getStepsForGoal(),
+                  nachspielzeitSek
+                );
+                // Flaggen auf Scoreboard aktivieren (mit Team-Indices fuer WM)
+                matheTrainer.setTournamentMode(
+                  TOURNAMENT_WORLD_CUP_2026,
+                  worldCupTournament.getPlayerTeamIndex(),
+                  worldCupTournament.getCurrentOpponentIndex()
+                );
+                currentMode = MODE_WM_PLAYING;
+              }
+            }
+            break;
+
+          case MODE_WM_PLAYING:
+            {
+              int result = matheTrainer.handleButtonPress(x, y);
+
+              // Exit angefragt?
+              if (result == 2) {
+                modeBeforeExit = MODE_WM_PLAYING;
+                confirmDialog.show("ABBRECHEN", "WM wirklich beenden?");
+                currentMode = MODE_CONFIRM_EXIT;
+                break;
+              }
+
+              // Pruefen ob Spiel vorbei
+              if (matheTrainer.isGameOver()) {
+                int playerGoals = matheTrainer.getGoalsScored();
+                int cpuGoals = matheTrainer.getGoalsAgainst();
+
+                Serial.printf("WM Match ended: %d : %d\n", playerGoals, cpuGoals);
+
+                // In Gruppenphase oder K.O.?
+                if (worldCupTournament.getKnockoutRound() < 0) {
+                  // Gruppenphase
+                  worldCupTournament.handleGroupMatchResult(playerGoals, cpuGoals);
+                  // Auto-Save nach Gruppenspiel
+                  WorldCupSave wcSave = worldCupTournament.createSave();
+                  profileManager.saveWorldCup(currentProfile.id, wcSave);
+                  worldCupTournament.draw();
+                  currentMode = MODE_WM_GROUP_TABLE;
+                } else {
+                  // K.O.-Phase
+                  if (playerGoals == cpuGoals) {
+                    // Elfmeterschiessen
+                    worldCupTournament.startPenaltyShootout();
+                    const WMTeam& opponent = worldCupTournament.getCurrentOpponent();
+                    setOpponentName(opponent.abbrev);
+                    setOpponentColor(getTextColorForBg(opponent.shirtColor));
+                    matheTrainer.initPenalty(
+                      worldCupTournament.getMatheMode(),
+                      worldCupTournament.getAnswerTime()
+                    );
+                    currentMode = MODE_WM_PENALTY;
+                  } else {
+                    Serial.printf("main: K.O. result player=%d cpu=%d\n", playerGoals, cpuGoals);
+                    worldCupTournament.handleKnockoutMatchResult(playerGoals, cpuGoals);
+                    WCState wcState = worldCupTournament.getState();
+                    Serial.printf("main: After K.O. result, state=%d\n", wcState);
+
+                    if (wcState == WC_CHAMPION) {
+                      // WM gewonnen -> Rekord eintragen, Save loeschen
+                      profileManager.recordTournamentWin(currentProfile.id, TOURNAMENT_WORLD_CUP_2026, worldCupTournament.getMatheMode());
+                      profileManager.deleteWorldCupSave(currentProfile.id);
+                      trophyDisplay.init();
+                      trophyDisplay.showTrophy(TOURNAMENT_WORLD_CUP_2026);
+                      currentMode = MODE_TROPHY;
+                    } else if (wcState == WC_ELIMINATED || playerGoals < cpuGoals) {
+                      // Ausgeschieden - Save loeschen
+                      // Zusaetzlicher Check: Wenn Spieler weniger Tore hat, ist er raus
+                      Serial.println("main: Player ELIMINATED");
+                      profileManager.deleteWorldCupSave(currentProfile.id);
+                      worldCupTournament.setState(WC_ELIMINATED);  // Sicherstellen
+                      worldCupTournament.draw();
+                      currentMode = MODE_WM_ELIMINATED;
+                    } else if (wcState == WC_KNOCKOUT_INTRO && playerGoals > cpuGoals) {
+                      // Naechste Runde - nur wenn Spieler gewonnen hat
+                      Serial.println("main: Player advances to next round");
+                      WorldCupSave wcSave = worldCupTournament.createSave();
+                      profileManager.saveWorldCup(currentProfile.id, wcSave);
+                      worldCupTournament.draw();
+                      currentMode = MODE_WM_KNOCKOUT_INTRO;
+                    } else {
+                      // Fallback - sollte nicht passieren
+                      Serial.printf("main: Unexpected state %d after K.O. match!\n", wcState);
+                      worldCupTournament.draw();
+                      currentMode = MODE_WM_KNOCKOUT_INTRO;
+                    }
+                  }
+                }
+              }
+            }
+            break;
+
+          case MODE_WM_GROUP_TABLE:
+            {
+              int choice = worldCupTournament.handleTouch(x, y);
+              if (choice == -1) {
+                // Weiter gedrueckt - State hat sich geaendert
+                WCState state = worldCupTournament.getState();
+                if (state == WC_MATCH_INTRO) {
+                  currentMode = MODE_WM_MATCH_INTRO;
+                } else if (state == WC_GROUP_COMPLETE) {
+                  currentMode = MODE_WM_GROUP_INTRO;  // Zeigt Gruppen-Abschluss
+                } else if (state == WC_KNOCKOUT_INTRO) {
+                  currentMode = MODE_WM_KNOCKOUT_INTRO;
+                } else if (state == WC_ELIMINATED) {
+                  currentMode = MODE_WM_ELIMINATED;
+                }
+              }
+            }
+            break;
+
+          case MODE_WM_KNOCKOUT_INTRO:
+            {
+              int choice = worldCupTournament.handleTouch(x, y);
+              if (choice == 0) {
+                // Zurueck
+                tournamentMenu.init();
+                tournamentMenu.draw();
+                currentMode = MODE_TOURNAMENT_SELECTION;
+              } else if (choice == 1) {
+                // Anpfiff - K.O.-Spiel starten
+                const WMTeam& playerTeam = worldCupTournament.getPlayerTeam();
+                const WMTeam& opponent = worldCupTournament.getCurrentOpponent();
+
+                setPlayerName(playerTeam.abbrev);
+                setPlayerTeamColor(getTextColorForBg(playerTeam.shirtColor));
+                setOpponentName(opponent.abbrev);
+                setOpponentColor(getTextColorForBg(opponent.shirtColor));
+
+                int nachspielzeitSek = random(10, 36);
+                matheTrainer.init(
+                  worldCupTournament.getMatheMode(),
+                  90000,
+                  worldCupTournament.getAnswerTime(),
+                  worldCupTournament.getStepsForGoal(),
+                  nachspielzeitSek
+                );
+                // Flaggen auf Scoreboard aktivieren (mit Team-Indices fuer K.O.-Runde)
+                matheTrainer.setTournamentMode(
+                  TOURNAMENT_WORLD_CUP_2026,
+                  worldCupTournament.getPlayerTeamIndex(),
+                  worldCupTournament.getCurrentOpponentIndex()
+                );
+                currentMode = MODE_WM_PLAYING;
+              }
+            }
+            break;
+
+          case MODE_WM_PENALTY:
+            {
+              int result = matheTrainer.handleButtonPress(x, y);
+
+              if (result == 2) {
+                modeBeforeExit = MODE_WM_PLAYING;
+                confirmDialog.show("ABBRECHEN", "WM wirklich beenden?");
+                currentMode = MODE_CONFIRM_EXIT;
+                break;
+              }
+
+              if (matheTrainer.isPenaltyAnswered()) {
+                bool playerScored = matheTrainer.wasPenaltyCorrect();
+                bool cpuScored = (random(0, 100) < worldCupTournament.getCpuPenaltyProb());
+                int currentRound = worldCupTournament.getPenaltyRound();
+
+                bool shootoutDone = worldCupTournament.handlePenalty(playerScored, cpuScored);
+
+                matheTrainer.showPenaltyResult(
+                  playerScored,
+                  cpuScored,
+                  worldCupTournament.getPlayerPenalties(),
+                  worldCupTournament.getCpuPenalties(),
+                  currentRound
+                );
+
+                if (shootoutDone) {
+                  if (worldCupTournament.getState() == WC_CHAMPION) {
+                    // WM gewonnen -> Rekord eintragen, Save loeschen
+                    profileManager.recordTournamentWin(currentProfile.id, TOURNAMENT_WORLD_CUP_2026, worldCupTournament.getMatheMode());
+                    profileManager.deleteWorldCupSave(currentProfile.id);
+                    trophyDisplay.init();
+                    trophyDisplay.showTrophy(TOURNAMENT_WORLD_CUP_2026);
+                    currentMode = MODE_TROPHY;
+                  } else if (worldCupTournament.getState() == WC_ELIMINATED) {
+                    // Ausgeschieden - Save loeschen
+                    profileManager.deleteWorldCupSave(currentProfile.id);
+                    worldCupTournament.draw();
+                    currentMode = MODE_WM_ELIMINATED;
+                  } else {
+                    // Naechste Runde - Auto-Save
+                    WorldCupSave wcSave = worldCupTournament.createSave();
+                    profileManager.saveWorldCup(currentProfile.id, wcSave);
+                    worldCupTournament.draw();
+                    currentMode = MODE_WM_KNOCKOUT_INTRO;
+                  }
+                } else {
+                  const WMTeam& opponent = worldCupTournament.getCurrentOpponent();
+                  setOpponentName(opponent.abbrev);
+                  setOpponentColor(getTextColorForBg(opponent.shirtColor));
+                  matheTrainer.initPenalty(
+                    worldCupTournament.getMatheMode(),
+                    worldCupTournament.getAnswerTime()
+                  );
+                }
+              }
+            }
+            break;
+
+          case MODE_WM_ELIMINATED:
+            {
+              int choice = worldCupTournament.handleTouch(x, y);
+              if (choice == 0) {
+                // Zurueck zum Menue
+                menu.draw();
+                currentMode = MODE_MENU;
+              } else if (choice == 2) {
+                // Zuschauer-Modus (TODO)
+                menu.draw();
+                currentMode = MODE_MENU;
+              }
+            }
+            break;
+
+          case MODE_WM_CHAMPION:
+            {
+              int choice = worldCupTournament.handleTouch(x, y);
+              if (choice == 0) {
+                menu.draw();
+                currentMode = MODE_MENU;
+              }
+            }
+            break;
+
+          case MODE_RECORDS:
+            {
+              int choice = recordsScreen.handleTouch(x, y);
+              if (choice == 0) {
+                // Zurueck zum Hauptmenue
+                menu.draw();
+                currentMode = MODE_MENU;
+              }
+            }
+            break;
+
+          case MODE_SCHREIBEN:
+            {
+              int choice = schreiben.handleTouch(x, y);
+              if (choice == 0) {
+                // Zurueck zum Hauptmenue
+                menu.draw();
+                currentMode = MODE_MENU;
+              }
+            }
+            break;
+
+          case MODE_QUIZ_MENU:
+            {
+              int choice = quizMenu.handleTouch(x, y);
+              if (choice == 0) {
+                // Zurueck zum Hauptmenue
+                menu.draw();
+                currentMode = MODE_MENU;
+              } else if (choice == 1) {
+                // Flaggen-Quiz
+                Serial.println("Opening Flag Quiz");
+                flagQuiz.init();
+                currentMode = MODE_FLAG_QUIZ;
+              } else if (choice == 2) {
+                // Vereine-Quiz
+                Serial.println("Opening Club Quiz");
+                clubQuiz.init();
+                currentMode = MODE_CLUB_QUIZ;
+              } else if (choice == 3) {
+                // Stadien-Quiz
+                Serial.println("Opening Stadion Quiz");
+                stadionQuiz.init();
+                currentMode = MODE_STADION_QUIZ;
+              } else if (choice == 4) {
+                // Kennzeichen-Quiz
+                Serial.println("Opening Kennzeichen Quiz");
+                kennzeichenQuiz.init();
+                currentMode = MODE_KENNZEICHEN_QUIZ;
+              }
+            }
+            break;
+
+          case MODE_FLAG_QUIZ:
+            {
+              int choice = flagQuiz.handleTouch(x, y);
+              if (choice == 0) {
+                // Zurueck zum Quiz-Menue (oder Game Over bestaetigt)
+                Serial.println("Flag Quiz ended");
+                int medal = flagQuiz.getHighestMedal();
+                int correct = flagQuiz.getCorrectCount();
+                Serial.printf("Result: %d correct, medal=%d\n", correct, medal);
+
+                // Medaille im Profil speichern
+                if (medal > 0) {
+                  profileManager.saveFlagQuizMedal(currentProfile.id, medal);
+                  currentProfile = profileManager.getProfileById(currentProfile.id);
+                }
+
+                quizMenu.draw();
+                currentMode = MODE_QUIZ_MENU;
+              }
+              // choice == 1 oder 2: Quiz laeuft weiter (intern gehandhabt)
+            }
+            break;
+
+          case MODE_CLUB_QUIZ:
+            {
+              int choice = clubQuiz.handleTouch(x, y);
+              if (choice == 0) {
+                // Zurueck zum Quiz-Menue (oder Game Over bestaetigt)
+                Serial.println("Club Quiz ended");
+                int medal = clubQuiz.getHighestMedal();
+                int correct = clubQuiz.getCorrectCount();
+                Serial.printf("Result: %d correct, medal=%d\n", correct, medal);
+
+                // Medaille im Profil speichern
+                if (medal > 0) {
+                  profileManager.saveClubQuizMedal(currentProfile.id, medal);
+                  currentProfile = profileManager.getProfileById(currentProfile.id);
+                }
+
+                quizMenu.draw();
+                currentMode = MODE_QUIZ_MENU;
+              }
+              // choice == 1 oder 2: Quiz laeuft weiter (intern gehandhabt)
+            }
+            break;
+
+          case MODE_STADION_QUIZ:
+            {
+              int choice = stadionQuiz.handleTouch(x, y);
+              if (choice == 0) {
+                // Zurueck zum Quiz-Menue (oder Game Over bestaetigt)
+                Serial.println("Stadion Quiz ended");
+                int medal = stadionQuiz.getHighestMedal();
+                int correct = stadionQuiz.getCorrectCount();
+                Serial.printf("Result: %d correct, medal=%d\n", correct, medal);
+
+                // Medaille im Profil speichern
+                if (medal > 0) {
+                  profileManager.saveStadionQuizMedal(currentProfile.id, medal);
+                  currentProfile = profileManager.getProfileById(currentProfile.id);
+                }
+
+                quizMenu.draw();
+                currentMode = MODE_QUIZ_MENU;
+              }
+              // choice == 1 oder 2: Quiz laeuft weiter (intern gehandhabt)
+            }
+            break;
+
+          case MODE_KENNZEICHEN_QUIZ:
+            {
+              int choice = kennzeichenQuiz.handleTouch(x, y);
+              if (choice == 0) {
+                // Zurueck zum Quiz-Menue (oder Game Over bestaetigt)
+                Serial.println("Kennzeichen Quiz ended");
+                int medal = kennzeichenQuiz.getHighestMedal();
+                int correct = kennzeichenQuiz.getCorrectCount();
+                Serial.printf("Result: %d correct, medal=%d\n", correct, medal);
+
+                // Medaille im Profil speichern
+                if (medal > 0) {
+                  profileManager.saveKennzeichenQuizMedal(currentProfile.id, medal);
+                  currentProfile = profileManager.getProfileById(currentProfile.id);
+                }
+
+                quizMenu.draw();
+                currentMode = MODE_QUIZ_MENU;
+              }
+              // choice == 1 oder 2: Quiz laeuft weiter (intern gehandhabt)
             }
             break;
         }

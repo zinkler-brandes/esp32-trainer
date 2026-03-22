@@ -10,11 +10,11 @@ class MatheMenu {
     MatheMenu();
     void init();
     void draw();
-    int handleTouch(int16_t x, int16_t y);  // 0=Zurück, 1=+/-, 2=1x1, 3=Pokal
+    int handleTouch(int16_t x, int16_t y);  // 0=Zurück, 1=Einzelspiel, 2=Pokal-Modus
 
   private:
     TFT_eSPI tft;
-    Button* menuButtons[3];  // +/-, 1x1, Pokal
+    Button* menuButtons[2];  // Einzelspiel, Pokal-Modus
     Button* backButton;
 };
 
