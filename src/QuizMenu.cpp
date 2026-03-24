@@ -30,7 +30,6 @@ QuizMenu::QuizMenu() {
 }
 
 void QuizMenu::init() {
-  tft.init();
   tft.setRotation(1);
 }
 

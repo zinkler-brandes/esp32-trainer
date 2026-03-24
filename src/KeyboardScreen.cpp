@@ -12,29 +12,29 @@ void KeyboardScreen::createKeys() {
   // Reihe 4: [LEER]
   // Reihe 5: [Abbrechen] [OK]
 
-  const char* row1 = "QWERTZUIO";
+  const char* row1 = "QWERTZUIOP";
   const char* row2 = "ASDFGHJKL";
   const char* row3 = "YXCVBNM";
 
-  int keyW = 30;
+  int keyW = 28;
   int keyH = 28;
   int spacing = 3;
   int startY = 60;
 
   int keyIndex = 0;
 
-  // Reihe 1: QWERTZUIO (9 Tasten)
-  int row1StartX = (320 - (9 * keyW + 8 * spacing)) / 2;
-  for (int i = 0; i < 9; i++) {
+  // Reihe 1: QWERTZUIOP (10 Tasten)
+  int row1StartX = (320 - (10 * keyW + 9 * spacing)) / 2;
+  for (int i = 0; i < 10; i++) {
     char label[2] = {row1[i], '\0'};
     keys[keyIndex] = new Button(row1StartX + i * (keyW + spacing), startY, keyW, keyH, label);
     keys[keyIndex]->setColors(TFT_NAVY, TFT_WHITE);
     keyIndex++;
   }
 
-  // Reihe 2: ASDFGHJKL (9 Tasten)
+  // Reihe 2: ASDFGHJKL (9 Tasten, zentriert mit leichtem Versatz)
   int row2Y = startY + keyH + spacing;
-  int row2StartX = (320 - (9 * keyW + 8 * spacing)) / 2;
+  int row2StartX = (320 - (9 * keyW + 8 * spacing)) / 2 + 5;
   for (int i = 0; i < 9; i++) {
     char label[2] = {row2[i], '\0'};
     keys[keyIndex] = new Button(row2StartX + i * (keyW + spacing), row2Y, keyW, keyH, label);
@@ -72,7 +72,6 @@ void KeyboardScreen::createKeys() {
 }
 
 void KeyboardScreen::init() {
-  tft.init();
   pinMode(TFT_BL, OUTPUT);
   digitalWrite(TFT_BL, HIGH);
   tft.setRotation(1);
@@ -91,7 +90,7 @@ void KeyboardScreen::draw() {
   updateNameDisplay();
 
   // Tastatur zeichnen
-  for (int i = 0; i < 27; i++) {  // 26 Buchstaben + Backspace + Space
+  for (int i = 0; i < 28; i++) {  // 26 Buchstaben + Backspace + Space
     if (keys[i]) {
       keys[i]->draw(&tft);
     }
@@ -149,7 +148,7 @@ int KeyboardScreen::handleTouch(int16_t x, int16_t y) {
   }
 
   // Tastatur prüfen
-  for (int i = 0; i < 27; i++) {
+  for (int i = 0; i < 28; i++) {
     if (keys[i] && keys[i]->contains(x, y)) {
       String label = keys[i]->getLabel();
 

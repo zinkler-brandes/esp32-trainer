@@ -1,0 +1,17 @@
+{
+  "name": "Tiki Taka",
+  "version": "1.0.0",
+  "home_assistant_domain": "",
+  "new_install_prompt_erase": true,
+  "builds": [
+    {
+      "chipFamily": "ESP32",
+      "parts": [
+        {
+          "path": "https://github.com/zinkler-brandes/esp32-trainer/releases/download/v1.0.0/tikitaka-v1.0.0.bin",
+          "offset": 0
+        }
+      ]
+    }
+  ]
+}

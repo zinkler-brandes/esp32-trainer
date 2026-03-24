@@ -31,7 +31,6 @@ StadionQuiz::StadionQuiz() {
 }
 
 void StadionQuiz::init() {
-  tft.init();
   tft.setRotation(1);
 
   _lives = 3;

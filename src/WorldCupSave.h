@@ -82,6 +82,9 @@ struct WorldCupSave {
   int bracketTeams[32];          // Teams in Runde der 32
   int bracketWinners[31];        // Gewinner der K.O.-Spiele
   int bracketScores[31][2];      // Ergebnisse [Spiel][0=Team1, 1=Team2]
+  bool bracketPlayed[31];        // Ob Spiel gespielt wurde
+  bool bracketPenalty[31];       // Ob durch Elfmeterschiessen entschieden
+  int bracketPenaltyScores[31][2]; // Elfmeter-Ergebnis
 
   // Konstruktor
   WorldCupSave() : mode(MATHE_PLUS_MINUS), playerTeamIndex(0), playerGroupIndex(0),
@@ -93,6 +96,10 @@ struct WorldCupSave {
       bracketWinners[i] = -1;
       bracketScores[i][0] = 0;
       bracketScores[i][1] = 0;
+      bracketPlayed[i] = false;
+      bracketPenalty[i] = false;
+      bracketPenaltyScores[i][0] = 0;
+      bracketPenaltyScores[i][1] = 0;
     }
   }
 

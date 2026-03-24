@@ -20,6 +20,7 @@ enum WCState {
   WC_PLAYING,            // Mathe-Spiel laeuft
   WC_MATCH_RESULT,       // Ergebnis anzeigen
   WC_GROUP_TABLE,        // Tabelle nach jedem Spiel
+  WC_GROUP_RESULTS,      // Ergebnisse einer Gruppe
   WC_GROUP_COMPLETE,     // Gruppenphase beendet
   WC_KNOCKOUT_INTRO,     // K.O.-Runden Intro
   WC_BRACKET_VIEW,       // K.O.-Bracket Uebersicht
@@ -80,7 +81,7 @@ class WorldCupTournament {
     bool isSpectator() { return _isSpectator; }
 
     // Elfmeterschießen
-    void startPenaltyShootout();
+    void startPenaltyShootout(int playerGoals, int cpuGoals);
     bool handlePenalty(bool playerScored, bool cpuScored);
     int getPlayerPenalties() { return _playerPenalties; }
     int getCpuPenalties() { return _cpuPenalties; }
@@ -102,6 +103,11 @@ class WorldCupTournament {
     Button* bracketButton;      // Bracket-Ansicht Button
     Button* prevRoundButton;    // K.O.-Runde zurueck
     Button* nextRoundButton;    // K.O.-Runde vor
+    Button* resultsButton;      // Ergebnisse anzeigen
+    Button* scrollUpButton;     // Ergebnisse hoch scrollen
+    Button* scrollDownButton;   // Ergebnisse runter scrollen
+    Button* bracketPrevButton;  // Bracket-Seite zurueck
+    Button* bracketNextButton;  // Bracket-Seite vor
 
     // Spieler-Team und Gruppe
     int _playerTeamIndex;
@@ -117,6 +123,8 @@ class WorldCupTournament {
     GroupTable _groupTable;    // Spieler-Gruppe (fuer Live-Updates)
     GroupTable _allGroups[12]; // Alle 12 Gruppen (fuer Navigation)
     int _viewingGroupIndex;    // Welche Gruppe wird angezeigt (-1 = Spieler-Gruppe)
+    int _resultsPage;          // Ergebnisse-Seite (0 = Spieltag 1+2, 1 = Spieltag 3)
+    int _bracketPage;          // Bracket-Seite (fuer R32: 0 = Spiele 1-8, 1 = Spiele 9-16)
 
     // K.O.-Phase
     int _knockoutRound;        // 0=R32, 1=R16, 2=QF, 3=SF, 4=Final
@@ -136,6 +144,8 @@ class WorldCupTournament {
     int _bracketWinners[31];   // Gewinner der K.O.-Spiele
     int _bracketResults[31][2]; // Ergebnisse (Tore) der K.O.-Spiele
     bool _bracketPlayed[31];   // Ob Spiel gespielt wurde
+    bool _bracketPenalty[31];  // Ob durch Elfmeterschiessen entschieden
+    int _bracketPenaltyResults[31][2]; // Elfmeter-Ergebnis
     int _viewingRound;         // Welche K.O.-Runde wird im Bracket angezeigt
 
     // Private Methoden
@@ -162,6 +172,7 @@ class WorldCupTournament {
     void drawGroupIntro();
     void drawMatchIntro();
     void drawGroupTable();
+    void drawGroupResults();
     void drawGroupComplete();
     void drawKnockoutIntro();
     void drawBracket();        // K.O.-Bracket Uebersicht

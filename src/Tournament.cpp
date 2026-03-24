@@ -22,7 +22,6 @@ Tournament::Tournament() {
 }
 
 void Tournament::init(TournamentType type, MatheMode matheMode) {
-  tft.init();
   pinMode(TFT_BL, OUTPUT);
   digitalWrite(TFT_BL, HIGH);
   tft.setRotation(1);
@@ -470,7 +469,6 @@ TournamentSave Tournament::createSave() {
 }
 
 void Tournament::loadFromSave(const TournamentSave& save) {
-  tft.init();
   pinMode(TFT_BL, OUTPUT);
   digitalWrite(TFT_BL, HIGH);
   tft.setRotation(1);

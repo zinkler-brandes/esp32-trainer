@@ -1,0 +1,771 @@
+/* ============================================
+   TIKI TAKA - Retro Regenbogen Design
+   ============================================ */
+
+:root {
+  /* Regenbogenfarben */
+  --rainbow-red: #FF0000;
+  --rainbow-orange: #FF8C00;
+  --rainbow-yellow: #FFD700;
+  --rainbow-green: #00FF00;
+  --rainbow-cyan: #00FFFF;
+  --rainbow-blue: #0000FF;
+  --rainbow-purple: #8B00FF;
+  --rainbow-pink: #FF00FF;
+
+  /* Basis */
+  --black: #0a0a0a;
+  --dark: #111111;
+  --white: #ffffff;
+  --gray: #888888;
+
+  /* Typography */
+  --font-main: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-pixel: 'Courier New', monospace;
+
+  /* Spacing */
+  --space-sm: 1rem;
+  --space-md: 2rem;
+  --space-lg: 4rem;
+  --space-xl: 6rem;
+
+  /* Borders */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+}
+
+/* ============================================
+   RESET & BASE
+   ============================================ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-main);
+  font-size: 18px;
+  line-height: 1.6;
+  color: var(--white);
+  background: var(--black);
+  -webkit-font-smoothing: antialiased;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ============================================
+   REGENBOGEN BALKEN
+   ============================================ */
+
+.rainbow-bar {
+  height: 21px;
+  background: linear-gradient(
+    to bottom,
+    var(--rainbow-red) 0%,
+    var(--rainbow-red) 14.28%,
+    var(--rainbow-orange) 14.28%,
+    var(--rainbow-orange) 28.56%,
+    var(--rainbow-yellow) 28.56%,
+    var(--rainbow-yellow) 42.84%,
+    var(--rainbow-green) 42.84%,
+    var(--rainbow-green) 57.12%,
+    var(--rainbow-cyan) 57.12%,
+    var(--rainbow-cyan) 71.4%,
+    var(--rainbow-blue) 71.4%,
+    var(--rainbow-blue) 85.68%,
+    var(--rainbow-purple) 85.68%,
+    var(--rainbow-purple) 100%
+  );
+  position: relative;
+  overflow: hidden;
+}
+
+.rainbow-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255,255,255,0.4) 50%,
+    transparent 100%
+  );
+  animation: rainbow-shine 3s infinite;
+}
+
+@keyframes rainbow-shine {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+.rainbow-bar-bottom {
+  transform: scaleY(-1);
+}
+
+/* ============================================
+   TYPOGRAPHY
+   ============================================ */
+
+h1, h2, h3, h4 {
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+h2 {
+  font-size: clamp(2rem, 5vw, 3rem);
+  margin-bottom: var(--space-md);
+  text-align: center;
+}
+
+h3 {
+  font-size: 1.5rem;
+  margin-bottom: var(--space-sm);
+}
+
+p {
+  max-width: 65ch;
+}
+
+/* ============================================
+   LAYOUT
+   ============================================ */
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 var(--space-md);
+}
+
+.container-narrow {
+  max-width: 700px;
+}
+
+.section {
+  padding: var(--space-xl) 0;
+}
+
+.section-intro {
+  font-size: 1.25rem;
+  color: var(--gray);
+  margin-bottom: var(--space-lg);
+  max-width: 600px;
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ============================================
+   HERO
+   ============================================ */
+
+.hero {
+  min-height: 100vh;
+  background: var(--black);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.hero-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--space-lg);
+}
+
+/* Pixel-Art Logo */
+.hero-logo {
+  display: flex;
+  gap: 8px;
+  margin-bottom: var(--space-md);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.hero-logo .letter {
+  font-size: clamp(3rem, 10vw, 6rem);
+  font-weight: 900;
+  font-family: var(--font-main);
+  text-shadow: 4px 4px 0 rgba(0,0,0,0.5);
+  animation: letter-glow 2s infinite;
+}
+
+.hero-logo .letter:nth-child(1) { color: var(--rainbow-red); animation-delay: 0s; }
+.hero-logo .letter:nth-child(2) { color: var(--rainbow-orange); animation-delay: 0.1s; }
+.hero-logo .letter:nth-child(3) { color: var(--rainbow-yellow); animation-delay: 0.2s; }
+.hero-logo .letter:nth-child(4) { color: var(--rainbow-green); animation-delay: 0.3s; }
+.hero-logo .letter:nth-child(5) { color: var(--rainbow-cyan); animation-delay: 0.4s; }
+.hero-logo .letter:nth-child(6) { color: var(--rainbow-blue); animation-delay: 0.5s; }
+.hero-logo .letter:nth-child(7) { color: var(--rainbow-purple); animation-delay: 0.6s; }
+.hero-logo .letter:nth-child(8) { color: var(--rainbow-pink); animation-delay: 0.7s; }
+
+@keyframes letter-glow {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.3); }
+}
+
+.hero-tagline {
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  color: var(--white);
+  margin-bottom: var(--space-lg);
+  font-weight: 400;
+}
+
+.hero-video {
+  max-width: 600px;
+  width: 100%;
+  margin-bottom: var(--space-lg);
+}
+
+.video-placeholder {
+  aspect-ratio: 16/9;
+  background: var(--dark);
+  border: 3px solid var(--rainbow-cyan);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  color: var(--gray);
+}
+
+.hero-cta {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* ============================================
+   BUTTONS
+   ============================================ */
+
+.btn {
+  display: inline-block;
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.btn-rainbow {
+  background: linear-gradient(90deg,
+    var(--rainbow-red),
+    var(--rainbow-orange),
+    var(--rainbow-yellow),
+    var(--rainbow-green),
+    var(--rainbow-cyan),
+    var(--rainbow-blue)
+  );
+  background-size: 200% 100%;
+  color: var(--white);
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+  animation: rainbow-shift 3s linear infinite;
+}
+
+.btn-rainbow:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(0, 255, 255, 0.3);
+}
+
+@keyframes rainbow-shift {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--white);
+  border: 2px solid var(--white);
+}
+
+.btn-outline:hover {
+  background: var(--white);
+  color: var(--black);
+}
+
+.btn-dark {
+  background: var(--dark);
+  color: var(--white);
+  border: 2px solid var(--rainbow-cyan);
+}
+
+.btn-dark:hover {
+  background: var(--rainbow-cyan);
+  color: var(--black);
+}
+
+/* ============================================
+   STARS BACKGROUND
+   ============================================ */
+
+.stars {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.star {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  animation: twinkle 2s infinite;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+/* ============================================
+   FEATURE SECTION
+   ============================================ */
+
+.section-dark {
+  background: var(--dark);
+  position: relative;
+}
+
+.section-black {
+  background: var(--black);
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--space-md);
+}
+
+.feature-card {
+  background: var(--black);
+  border: 2px solid transparent;
+  border-image: linear-gradient(135deg, var(--rainbow-cyan), var(--rainbow-purple)) 1;
+  padding: var(--space-md);
+  text-align: center;
+  transition: transform 0.2s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-5px);
+}
+
+.feature-icon {
+  font-size: 3rem;
+  margin-bottom: var(--space-sm);
+}
+
+.feature-card h3 {
+  color: var(--rainbow-cyan);
+}
+
+.feature-card p {
+  color: var(--gray);
+  margin: 0 auto;
+}
+
+/* ============================================
+   SCREENSHOTS
+   ============================================ */
+
+.screenshot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-md);
+}
+
+.screenshot {
+  text-align: center;
+}
+
+.screenshot-placeholder {
+  aspect-ratio: 3/4;
+  background: var(--dark);
+  border: 2px solid var(--rainbow-purple);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-sm);
+  color: var(--gray);
+}
+
+.screenshot figcaption {
+  font-weight: 600;
+  color: var(--rainbow-yellow);
+}
+
+/* ============================================
+   TOURNAMENTS
+   ============================================ */
+
+.tournament-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-md);
+}
+
+.tournament-card {
+  background: var(--black);
+  padding: var(--space-lg) var(--space-md);
+  text-align: center;
+  border: 2px solid var(--rainbow-yellow);
+  border-radius: var(--radius-md);
+  transition: all 0.2s ease;
+}
+
+.tournament-card:hover {
+  border-color: var(--rainbow-orange);
+  box-shadow: 0 0 30px rgba(255, 215, 0, 0.2);
+}
+
+.tournament-trophy {
+  font-size: 4rem;
+  margin-bottom: var(--space-sm);
+}
+
+.tournament-card h3 {
+  color: var(--rainbow-yellow);
+}
+
+.tournament-card p {
+  color: var(--gray);
+  margin: 0 auto;
+}
+
+/* ============================================
+   BUILD SECTION
+   ============================================ */
+
+.build-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-lg);
+}
+
+.build-step {
+  text-align: center;
+}
+
+.step-number {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto var(--space-sm);
+  background: linear-gradient(135deg, var(--rainbow-cyan), var(--rainbow-blue));
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 900;
+  color: var(--white);
+}
+
+.build-step h3 {
+  color: var(--rainbow-cyan);
+}
+
+.build-step p {
+  color: var(--gray);
+  margin: 0 auto var(--space-sm);
+}
+
+.link-arrow {
+  color: var(--rainbow-pink);
+  font-weight: 600;
+}
+
+.link-arrow:hover {
+  text-decoration: underline;
+}
+
+/* ============================================
+   HARDWARE LIST
+   ============================================ */
+
+.hardware-list {
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.hardware-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  padding: var(--space-md) 0;
+  border-bottom: 1px solid #333;
+}
+
+.hardware-check {
+  width: 32px;
+  height: 32px;
+  background: var(--rainbow-green);
+  color: var(--black);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.hardware-info {
+  flex: 1;
+}
+
+.hardware-info h4 {
+  color: var(--white);
+  font-size: 1.1rem;
+  margin-bottom: 0.25rem;
+}
+
+.hardware-info p {
+  color: var(--gray);
+  font-size: 0.95rem;
+}
+
+.hardware-price {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--rainbow-green);
+}
+
+.hardware-total {
+  text-align: center;
+  margin-top: var(--space-md);
+  font-size: 1.5rem;
+  color: var(--rainbow-green);
+}
+
+/* ============================================
+   3D CASE SECTION
+   ============================================ */
+
+.case-preview {
+  max-width: 400px;
+  margin: var(--space-lg) auto;
+}
+
+.case-placeholder {
+  aspect-ratio: 1;
+  background: var(--dark);
+  border: 2px solid var(--rainbow-orange);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray);
+}
+
+.case-downloads {
+  text-align: center;
+}
+
+.case-hint {
+  margin-top: var(--space-sm);
+  color: var(--gray);
+  font-size: 0.95rem;
+}
+
+/* ============================================
+   BUY SECTION
+   ============================================ */
+
+.section-rainbow {
+  background: linear-gradient(135deg, var(--dark) 0%, #1a1a2e 100%);
+  border-top: 3px solid;
+  border-bottom: 3px solid;
+  border-image: linear-gradient(90deg,
+    var(--rainbow-red),
+    var(--rainbow-orange),
+    var(--rainbow-yellow),
+    var(--rainbow-green),
+    var(--rainbow-cyan),
+    var(--rainbow-blue),
+    var(--rainbow-purple)
+  ) 1;
+}
+
+.buy-box {
+  background: var(--black);
+  padding: var(--space-lg);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  max-width: 500px;
+  margin: var(--space-lg) auto 0;
+  border: 2px solid var(--rainbow-yellow);
+}
+
+.buy-price {
+  font-size: 4rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--rainbow-yellow), var(--rainbow-orange));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+}
+
+.buy-details {
+  color: var(--gray);
+  margin-bottom: var(--space-md);
+}
+
+.buy-box .btn {
+  margin-bottom: var(--space-sm);
+}
+
+.buy-note {
+  font-size: 0.9rem;
+  color: var(--gray);
+}
+
+/* ============================================
+   FOOTER
+   ============================================ */
+
+.footer {
+  background: var(--black);
+  padding: var(--space-lg) 0 var(--space-md);
+  border-top: 1px solid #333;
+}
+
+.footer-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.footer-brand strong {
+  font-size: 1.5rem;
+  background: linear-gradient(90deg, var(--rainbow-red), var(--rainbow-pink));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.footer-brand p {
+  color: var(--gray);
+  margin-top: 0.5rem;
+}
+
+.footer-links {
+  display: flex;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.footer-links a {
+  color: var(--gray);
+  transition: color 0.2s;
+}
+
+.footer-links a:hover {
+  color: var(--rainbow-cyan);
+}
+
+.footer-note {
+  font-size: 0.85rem;
+  color: #555;
+  border-top: 1px solid #222;
+  padding-top: var(--space-md);
+  text-align: center;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 768px) {
+  .section {
+    padding: var(--space-lg) 0;
+  }
+
+  .hero-cta {
+    flex-direction: column;
+    width: 100%;
+    padding: 0 var(--space-md);
+  }
+
+  .hero-cta .btn {
+    width: 100%;
+  }
+
+  .hero-logo .letter {
+    font-size: 2.5rem;
+  }
+
+  .hardware-item {
+    flex-wrap: wrap;
+  }
+
+  .hardware-price {
+    width: 100%;
+    margin-top: var(--space-sm);
+  }
+
+  .footer-content {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .footer-links {
+    justify-content: center;
+  }
+}
+
+/* ============================================
+   SCROLLBAR
+   ============================================ */
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--black);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(var(--rainbow-purple), var(--rainbow-cyan));
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(var(--rainbow-pink), var(--rainbow-blue));
+}

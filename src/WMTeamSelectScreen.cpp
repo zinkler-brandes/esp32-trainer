@@ -27,7 +27,6 @@ WMTeamSelectScreen::WMTeamSelectScreen() {
 }
 
 void WMTeamSelectScreen::init(const FavoriteTeam& currentFav) {
-  tft.init();
   pinMode(TFT_BL, OUTPUT);
   digitalWrite(TFT_BL, HIGH);
   tft.setRotation(1);
@@ -134,12 +133,6 @@ void WMTeamSelectScreen::drawTeamList() {
 
   // Button-Bereich leeren (fuer saubere Darstellung)
   tft.fillRect(0, 195, 320, 45, TFT_BLACK);
-
-  // Seitennummer
-  tft.setTextSize(1);
-  tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
-  tft.setCursor(140, 220);
-  tft.printf("%d/%d", _currentPage + 1, _totalPages);
 }
 
 int WMTeamSelectScreen::handleTouch(int16_t x, int16_t y) {

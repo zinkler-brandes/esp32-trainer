@@ -24,7 +24,6 @@ TeamSelectScreen::TeamSelectScreen() {
 }
 
 void TeamSelectScreen::init(TournamentType type, const FavoriteTeam& currentFav) {
-  tft.init();
   pinMode(TFT_BL, OUTPUT);
   digitalWrite(TFT_BL, HIGH);
   tft.setRotation(1);

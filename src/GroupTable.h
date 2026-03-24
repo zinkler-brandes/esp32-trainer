@@ -32,6 +32,10 @@ class GroupTable {
     // Tabelle zeichnen
     void draw(TFT_eSPI* tft, int playerTeamIndex);
 
+    // Ergebnisse zeichnen (mit Pagination)
+    // page 0 = Spieltag 1+2, page 1 = Spieltag 3
+    void drawResults(TFT_eSPI* tft, int playerTeamIndex, int page);
+
     // Platzierung eines Teams abfragen (1-4)
     int getTeamPosition(int teamIndex);
 

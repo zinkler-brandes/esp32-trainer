@@ -27,6 +27,8 @@
 #include "QuizMenu.h"
 #include "StadionQuiz.h"
 #include "KennzeichenQuiz.h"
+#include "InfoScreen.h"
+#include "SplashScreen.h"
 
 // Modi
 enum AppMode {
@@ -96,6 +98,8 @@ ClubQuiz clubQuiz;
 QuizMenu quizMenu;
 StadionQuiz stadionQuiz;
 KennzeichenQuiz kennzeichenQuiz;
+InfoScreen infoScreen;
+SplashScreen splashScreen;
 
 // Profil-System
 SDManager sdManager;
@@ -159,15 +163,9 @@ void setup() {
   Serial.begin(115200);
   delay(100);
 
-  Serial.println("=== ESP32 Mathe-Trainer Starting ===");
+  Serial.println("=== Kopfball Starting ===");
 
-  // Touch initialisieren
-  touch.begin();
-
-  // SD-Karte initialisieren
-  bool sdReady = sdManager.begin();
-
-  // Screens initialisieren
+  // Screens initialisieren (vor Splash, damit Flackern nicht sichtbar)
   menu.init();
   profileSelectScreen.init();
   profileManageScreen.init();
@@ -175,6 +173,16 @@ void setup() {
   confirmDialog.init();
   tournamentContinueDialog.init();
   tournamentIntro.init();
+
+  // Splash Screen zeigen
+  splashScreen.init();
+  splashScreen.show();
+
+  // Touch initialisieren
+  touch.begin();
+
+  // SD-Karte initialisieren
+  bool sdReady = sdManager.begin();
 
   if (sdReady) {
     // ProfileManager initialisieren
@@ -406,6 +414,15 @@ void loop() {
               } else if (choice == 3) {
                 // Schreiben-Uebung oeffnen
                 Serial.println("Opening Schreiben");
+                // Info-Screen zeigen (nur beim ersten Mal)
+                if (!profileManager.hasSeenIntro(currentProfile.id, INTRO_SCHREIBEN)) {
+                  if (!infoScreen.show(INFO_SCHREIBEN, &touch)) {
+                    // Zurueck gedrueckt
+                    menu.draw();
+                    break;
+                  }
+                  profileManager.setIntroSeen(currentProfile.id, INTRO_SCHREIBEN);
+                }
                 schreiben.init();
                 currentMode = MODE_SCHREIBEN;
               } else if (choice == 4) {
@@ -494,6 +511,14 @@ void loop() {
                 // St. Vit (erlernen) -> Direkt starten mit 1 Minute
                 Serial.println("Selected: St. Vit (erlernen)");
                 selectedDifficulty = 1;
+                // Info-Screen zeigen (nur beim ersten Mal)
+                if (!profileManager.hasSeenIntro(currentProfile.id, INTRO_EINZELSPIEL)) {
+                  if (!infoScreen.show(INFO_EINZELSPIEL, &touch)) {
+                    difficultyMenu.draw();
+                    break;
+                  }
+                  profileManager.setIntroSeen(currentProfile.id, INTRO_EINZELSPIEL);
+                }
                 Difficulty diff = DifficultyMenu::getDifficulty(1);
                 matheTrainer.clearTournamentMode();  // Keine Turnier-Logos
                 matheTrainer.init(selectedMatheMode, 60000, diff.answerTimeMs, diff.stepsForGoal);
@@ -525,6 +550,15 @@ void loop() {
                   case 2: duration = 120000; break;  // 2 Minuten
                   case 3: duration = 180000; break;  // 3 Minuten
                   default: duration = 120000; break;
+                }
+
+                // Info-Screen zeigen (nur beim ersten Mal)
+                if (!profileManager.hasSeenIntro(currentProfile.id, INTRO_EINZELSPIEL)) {
+                  if (!infoScreen.show(INFO_EINZELSPIEL, &touch)) {
+                    timeMenu.draw();
+                    break;
+                  }
+                  profileManager.setIntroSeen(currentProfile.id, INTRO_EINZELSPIEL);
                 }
 
                 Difficulty diff = DifficultyMenu::getDifficulty(selectedDifficulty);
@@ -704,33 +738,24 @@ void loop() {
                 teamSelectScreen.init(selectedTournamentType, favTeam);
                 teamSelectScreen.draw();
                 currentMode = MODE_TEAM_SELECT;
-              } else if (choice == 1) {
-                // +/- gewählt
-                selectedMatheMode = MATHE_PLUS_MINUS;
-                tournament.init(selectedTournamentType, selectedMatheMode);
-                tournament.setPlayerTeam(favTeam.name, favTeam.abbrev, favTeam.primaryColor);
-                tournamentIntro.showIntro(selectedTournamentType, &touch);
-                tournament.draw();
-                currentMode = MODE_TOURNAMENT_INTRO;
-              } else if (choice == 2) {
-                // 1x1 gewählt
-                selectedMatheMode = MATHE_MULTIPLY;
-                tournament.init(selectedTournamentType, selectedMatheMode);
-                tournament.setPlayerTeam(favTeam.name, favTeam.abbrev, favTeam.primaryColor);
-                tournamentIntro.showIntro(selectedTournamentType, &touch);
-                tournament.draw();
-                currentMode = MODE_TOURNAMENT_INTRO;
-              } else if (choice == 3) {
-                // 1:1 gewählt (Division)
-                selectedMatheMode = MATHE_DIVIDE;
-                tournament.init(selectedTournamentType, selectedMatheMode);
-                tournament.setPlayerTeam(favTeam.name, favTeam.abbrev, favTeam.primaryColor);
-                tournamentIntro.showIntro(selectedTournamentType, &touch);
-                tournament.draw();
-                currentMode = MODE_TOURNAMENT_INTRO;
-              } else if (choice == 4) {
-                // Alle gewählt (Gemischt)
-                selectedMatheMode = MATHE_ALL;
+              } else if (choice >= 1 && choice <= 4) {
+                // Rechenart gewählt
+                if (choice == 1) selectedMatheMode = MATHE_PLUS_MINUS;
+                else if (choice == 2) selectedMatheMode = MATHE_MULTIPLY;
+                else if (choice == 3) selectedMatheMode = MATHE_DIVIDE;
+                else selectedMatheMode = MATHE_ALL;
+
+                // Info-Screen zeigen (nur beim ersten Mal pro Turnier-Typ)
+                uint16_t introFlag = (selectedTournamentType == TOURNAMENT_DFB_POKAL) ? INTRO_DFB_POKAL : INTRO_CL;
+                InfoType infoType = (selectedTournamentType == TOURNAMENT_DFB_POKAL) ? INFO_DFB_POKAL : INFO_CHAMPIONS_LEAGUE;
+                if (!profileManager.hasSeenIntro(currentProfile.id, introFlag)) {
+                  if (!infoScreen.show(infoType, &touch)) {
+                    tournamentMatheModeMenu.draw();
+                    break;
+                  }
+                  profileManager.setIntroSeen(currentProfile.id, introFlag);
+                }
+
                 tournament.init(selectedTournamentType, selectedMatheMode);
                 tournament.setPlayerTeam(favTeam.name, favTeam.abbrev, favTeam.primaryColor);
                 tournamentIntro.showIntro(selectedTournamentType, &touch);
@@ -954,6 +979,15 @@ void loop() {
                 else if (choice == 3) selectedMatheMode = MATHE_DIVIDE;
                 else selectedMatheMode = MATHE_ALL;
 
+                // Info-Screen zeigen (nur beim ersten Mal)
+                if (!profileManager.hasSeenIntro(currentProfile.id, INTRO_WM)) {
+                  if (!infoScreen.show(INFO_WM, &touch)) {
+                    tournamentMatheModeMenu.draw();
+                    break;
+                  }
+                  profileManager.setIntroSeen(currentProfile.id, INTRO_WM);
+                }
+
                 // WM-Turnier starten
                 int teamIndex = wmTeamSelectScreen.getSelectedTeamIndex();
                 worldCupTournament.init(selectedMatheMode, teamIndex);
@@ -1051,7 +1085,7 @@ void loop() {
                   // K.O.-Phase
                   if (playerGoals == cpuGoals) {
                     // Elfmeterschiessen
-                    worldCupTournament.startPenaltyShootout();
+                    worldCupTournament.startPenaltyShootout(playerGoals, cpuGoals);
                     const WMTeam& opponent = worldCupTournament.getCurrentOpponent();
                     setOpponentName(opponent.abbrev);
                     setOpponentColor(getTextColorForBg(opponent.shirtColor));
@@ -1272,21 +1306,49 @@ void loop() {
               } else if (choice == 1) {
                 // Flaggen-Quiz
                 Serial.println("Opening Flag Quiz");
+                if (!profileManager.hasSeenIntro(currentProfile.id, INTRO_FLAG_QUIZ)) {
+                  if (!infoScreen.show(INFO_FLAG_QUIZ, &touch)) {
+                    quizMenu.draw();
+                    break;
+                  }
+                  profileManager.setIntroSeen(currentProfile.id, INTRO_FLAG_QUIZ);
+                }
                 flagQuiz.init();
                 currentMode = MODE_FLAG_QUIZ;
               } else if (choice == 2) {
                 // Vereine-Quiz
                 Serial.println("Opening Club Quiz");
+                if (!profileManager.hasSeenIntro(currentProfile.id, INTRO_CLUB_QUIZ)) {
+                  if (!infoScreen.show(INFO_CLUB_QUIZ, &touch)) {
+                    quizMenu.draw();
+                    break;
+                  }
+                  profileManager.setIntroSeen(currentProfile.id, INTRO_CLUB_QUIZ);
+                }
                 clubQuiz.init();
                 currentMode = MODE_CLUB_QUIZ;
               } else if (choice == 3) {
                 // Stadien-Quiz
                 Serial.println("Opening Stadion Quiz");
+                if (!profileManager.hasSeenIntro(currentProfile.id, INTRO_STADION_QUIZ)) {
+                  if (!infoScreen.show(INFO_STADION_QUIZ, &touch)) {
+                    quizMenu.draw();
+                    break;
+                  }
+                  profileManager.setIntroSeen(currentProfile.id, INTRO_STADION_QUIZ);
+                }
                 stadionQuiz.init();
                 currentMode = MODE_STADION_QUIZ;
               } else if (choice == 4) {
                 // Kennzeichen-Quiz
                 Serial.println("Opening Kennzeichen Quiz");
+                if (!profileManager.hasSeenIntro(currentProfile.id, INTRO_KENNZEICHEN)) {
+                  if (!infoScreen.show(INFO_KENNZEICHEN_QUIZ, &touch)) {
+                    quizMenu.draw();
+                    break;
+                  }
+                  profileManager.setIntroSeen(currentProfile.id, INTRO_KENNZEICHEN);
+                }
                 kennzeichenQuiz.init();
                 currentMode = MODE_KENNZEICHEN_QUIZ;
               }

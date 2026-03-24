@@ -30,7 +30,6 @@ KennzeichenQuiz::KennzeichenQuiz() {
 }
 
 void KennzeichenQuiz::init() {
-  tft.init();
   tft.setRotation(1);
 
   _lives = 3;

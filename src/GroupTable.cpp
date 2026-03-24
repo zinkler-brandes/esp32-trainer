@@ -101,8 +101,11 @@ void GroupTable::addResult(int team1Index, int team2Index, int goals1, int goals
 }
 
 void GroupTable::calculateStandings() {
-  // Standings zuruecksetzen
+  // Standings komplett zuruecksetzen (inkl. teamIndex!)
+  // Wichtig: teamIndex muss auf lokale Position zurueckgesetzt werden,
+  // da die Standings nach dem Sortieren durcheinander sind
   for (int i = 0; i < 4; i++) {
+    _standings[i].teamIndex = WM_GROUPS[_groupIndex].teamIndices[i];
     _standings[i].played = 0;
     _standings[i].won = 0;
     _standings[i].drawn = 0;
@@ -286,6 +289,85 @@ void GroupTable::draw(TFT_eSPI* tft, int playerTeamIndex) {
     tft->printf("%2d", _standings[i].points);
   }
 
+}
+
+void GroupTable::drawResults(TFT_eSPI* tft, int playerTeamIndex, int page) {
+  tft->fillScreen(TFT_BLACK);
+
+  // Titel
+  tft->setTextColor(TFT_YELLOW, TFT_BLACK);
+  tft->setTextSize(2);
+  tft->setCursor(60, 10);
+  tft->printf("ERGEBNISSE %c", getGroupLetter());
+
+  // Spieltag-Labels
+  const char* matchdayLabels[] = {"Spieltag 1", "Spieltag 2", "Spieltag 3"};
+
+  // Seite 0: Spieltag 1+2, Seite 1: Spieltag 3
+  int startDay = (page == 0) ? 0 : 2;
+  int endDay = (page == 0) ? 2 : 3;
+
+  int y = 45;
+  int rowHeight = 32;
+
+  for (int day = startDay; day < endDay; day++) {
+    // Spieltag-Header
+    tft->setTextSize(1);
+    tft->setTextColor(TFT_DARKGREY, TFT_BLACK);
+    tft->setCursor(10, y);
+    tft->print(matchdayLabels[day]);
+    y += 16;
+
+    // 2 Spiele pro Spieltag
+    for (int m = 0; m < 2; m++) {
+      int matchIdx = day * 2 + m;
+      int t1Local, t2Local;
+      getMatchTeams(matchIdx, t1Local, t2Local);
+
+      int team1 = WM_GROUPS[_groupIndex].teamIndices[t1Local];
+      int team2 = WM_GROUPS[_groupIndex].teamIndices[t2Local];
+
+      bool isPlayerMatch = (team1 == playerTeamIndex || team2 == playerTeamIndex);
+
+      // Hintergrund fuer Spieler-Spiele
+      if (isPlayerMatch) {
+        tft->fillRect(5, y - 2, 310, rowHeight - 4, 0x0320);
+      }
+
+      tft->setTextSize(2);
+      uint16_t bgColor = isPlayerMatch ? 0x0320 : TFT_BLACK;
+
+      // Flagge Team 1
+      FlagDrawer::drawWMTeamFlag(tft, 10, y, 24, 16, team1);
+
+      // Team 1 Name (etwas mehr Platz)
+      tft->setTextColor(TFT_WHITE, bgColor);
+      tft->setCursor(40, y);
+      tft->print(WM_TEAMS[team1].abbrev);
+
+      // Ergebnis oder "- : -" (zentrierter)
+      tft->setCursor(130, y);
+      if (_results[matchIdx].played) {
+        tft->setTextColor(TFT_YELLOW, bgColor);
+        tft->printf("%d : %d", _results[matchIdx].team1Goals, _results[matchIdx].team2Goals);
+      } else {
+        tft->setTextColor(TFT_DARKGREY, bgColor);
+        tft->print("- : -");
+      }
+
+      // Flagge Team 2
+      FlagDrawer::drawWMTeamFlag(tft, 210, y, 24, 16, team2);
+
+      // Team 2 Name
+      tft->setTextColor(TFT_WHITE, bgColor);
+      tft->setCursor(240, y);
+      tft->print(WM_TEAMS[team2].abbrev);
+
+      y += rowHeight;
+    }
+
+    y += 8;  // Abstand zwischen Spieltagen
+  }
 }
 
 int GroupTable::getTeamPosition(int teamIndex) {

@@ -53,6 +53,10 @@ class ProfileManager {
     bool saveStadionQuizMedal(int profileId, int medal);
     bool saveKennzeichenQuizMedal(int profileId, int medal);
 
+    // Intro-Status
+    bool hasSeenIntro(int profileId, uint16_t introType);
+    bool setIntroSeen(int profileId, uint16_t introType);
+
   private:
     SDManager* _sd;
     std::vector<Profile> _profiles;

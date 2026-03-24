@@ -28,7 +28,6 @@ TournamentMenu::TournamentMenu() {
 }
 
 void TournamentMenu::init() {
-  tft.init();
   pinMode(TFT_BL, OUTPUT);
   digitalWrite(TFT_BL, HIGH);
   tft.setRotation(1);
@@ -101,7 +100,6 @@ TournamentMatheModeMenu::TournamentMatheModeMenu() {
 }
 
 void TournamentMatheModeMenu::init() {
-  tft.init();
   pinMode(TFT_BL, OUTPUT);
   digitalWrite(TFT_BL, HIGH);
   tft.setRotation(1);

@@ -51,6 +51,7 @@ struct FlagData {
 #define CUSTOM_SWITZERLAND 17
 #define CUSTOM_PORTUGAL    18
 #define CUSTOM_SPAIN       19
+#define CUSTOM_PARAGUAY    20
 
 class FlagDrawer {
   public:
@@ -90,6 +91,7 @@ class FlagDrawer {
     static void drawSwitzerland(TFT_eSPI* tft, int x, int y, int w, int h);
     static void drawPortugal(TFT_eSPI* tft, int x, int y, int w, int h);
     static void drawSpain(TFT_eSPI* tft, int x, int y, int w, int h);
+    static void drawParaguay(TFT_eSPI* tft, int x, int y, int w, int h);
 
     // Hilfsfunktionen
     static void drawStar5(TFT_eSPI* tft, int cx, int cy, int r, uint16_t color);

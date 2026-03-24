@@ -86,7 +86,6 @@ Mathe::Mathe() {
 
 void Mathe::init(MatheMode mode, unsigned long durationMs, unsigned long answerTimeMs, int stepsForGoal, int nachspielzeitSek) {
   // Display initialisieren
-  tft.init();
   pinMode(TFT_BL, OUTPUT);
   digitalWrite(TFT_BL, HIGH);
   tft.setRotation(1);
@@ -138,7 +137,6 @@ void Mathe::init(MatheMode mode, unsigned long durationMs, unsigned long answerT
 }
 
 void Mathe::initPenalty(MatheMode mode, unsigned long answerTimeMs) {
-  tft.init();
   pinMode(TFT_BL, OUTPUT);
   digitalWrite(TFT_BL, HIGH);
   tft.setRotation(1);

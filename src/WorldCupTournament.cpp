@@ -40,12 +40,31 @@ WorldCupTournament::WorldCupTournament() {
   nextRoundButton = new Button(270, 200, 40, 30, ">");
   nextRoundButton->setColors(TFT_BLUE, TFT_WHITE);
 
+  // Ergebnisse-Button (auf Gruppen-Screen)
+  resultsButton = new Button(200, 5, 55, 25, "ERG");
+  resultsButton->setColors(TFT_PURPLE, TFT_WHITE);
+
+  // Scroll-Buttons fuer Ergebnisse (unten rechts)
+  scrollUpButton = new Button(280, 170, 35, 30, "^");
+  scrollUpButton->setColors(TFT_BLUE, TFT_WHITE);
+
+  scrollDownButton = new Button(280, 205, 35, 30, "v");
+  scrollDownButton->setColors(TFT_BLUE, TFT_WHITE);
+
+  // Bracket-Pagination (rechts neben den Paarungen)
+  bracketPrevButton = new Button(265, 60, 45, 35, "<");
+  bracketPrevButton->setColors(TFT_BLUE, TFT_WHITE);
+
+  bracketNextButton = new Button(265, 105, 45, 35, ">");
+  bracketNextButton->setColors(TFT_BLUE, TFT_WHITE);
+
   _viewingGroupIndex = -1;  // Zeigt Spieler-Gruppe
   _viewingRound = 0;        // Zeigt aktuelle K.O.-Runde
+  _resultsPage = 0;         // Erste Seite der Ergebnisse
+  _bracketPage = 0;         // Erste Seite des Brackets
 }
 
 void WorldCupTournament::init(MatheMode matheMode, int playerTeamIndex) {
-  tft.init();
   pinMode(TFT_BL, OUTPUT);
   digitalWrite(TFT_BL, HIGH);
   tft.setRotation(1);
@@ -74,6 +93,9 @@ void WorldCupTournament::init(MatheMode matheMode, int playerTeamIndex) {
     _bracketResults[i][0] = 0;
     _bracketResults[i][1] = 0;
     _bracketPlayed[i] = false;
+    _bracketPenalty[i] = false;
+    _bracketPenaltyResults[i][0] = 0;
+    _bracketPenaltyResults[i][1] = 0;
   }
   _viewingRound = 0;
 
@@ -102,6 +124,9 @@ void WorldCupTournament::draw() {
       break;
     case WC_GROUP_TABLE:
       drawGroupTable();
+      break;
+    case WC_GROUP_RESULTS:
+      drawGroupResults();
       break;
     case WC_GROUP_COMPLETE:
       drawGroupComplete();
@@ -144,6 +169,13 @@ int WorldCupTournament::handleTouch(int16_t x, int16_t y) {
       break;
 
     case WC_GROUP_TABLE:
+      // Ergebnisse-Button
+      if (resultsButton->contains(x, y)) {
+        _resultsPage = 0;  // Immer bei Seite 0 starten
+        _state = WC_GROUP_RESULTS;
+        draw();
+        return -1;
+      }
       // Gruppen-Navigation (alle 12 Gruppen inkl. Spieler-Gruppe)
       if (prevGroupButton->contains(x, y)) {
         if (_viewingGroupIndex == -1) {
@@ -200,6 +232,49 @@ int WorldCupTournament::handleTouch(int16_t x, int16_t y) {
       }
       break;
 
+    case WC_GROUP_RESULTS:
+      // Zurueck zur Tabelle
+      if (backButton->contains(x, y)) {
+        _resultsPage = 0;  // Reset beim Verlassen
+        _state = WC_GROUP_TABLE;
+        draw();
+        return -1;
+      }
+      // Scroll hoch
+      if (_resultsPage > 0 && scrollUpButton->contains(x, y)) {
+        _resultsPage--;
+        draw();
+        return -1;
+      }
+      // Scroll runter
+      if (_resultsPage < 1 && scrollDownButton->contains(x, y)) {
+        _resultsPage++;
+        draw();
+        return -1;
+      }
+      // Gruppen-Navigation auch auf Ergebnisse-Screen
+      if (prevGroupButton->contains(x, y)) {
+        _resultsPage = 0;  // Reset bei Gruppenwechsel
+        if (_viewingGroupIndex == -1) {
+          _viewingGroupIndex = (_playerGroupIndex - 1 + WM_GROUP_COUNT) % WM_GROUP_COUNT;
+        } else {
+          _viewingGroupIndex = (_viewingGroupIndex - 1 + WM_GROUP_COUNT) % WM_GROUP_COUNT;
+        }
+        draw();
+        return -1;
+      }
+      if (nextGroupButton->contains(x, y)) {
+        _resultsPage = 0;  // Reset bei Gruppenwechsel
+        if (_viewingGroupIndex == -1) {
+          _viewingGroupIndex = (_playerGroupIndex + 1) % WM_GROUP_COUNT;
+        } else {
+          _viewingGroupIndex = (_viewingGroupIndex + 1) % WM_GROUP_COUNT;
+        }
+        draw();
+        return -1;
+      }
+      break;
+
     case WC_GROUP_COMPLETE:
       if (continueButton->contains(x, y)) {
         if (isPlayerQualifiedFromGroup()) {
@@ -226,21 +301,36 @@ int WorldCupTournament::handleTouch(int16_t x, int16_t y) {
       }
       break;
 
-    case WC_BRACKET_VIEW:
+    case WC_BRACKET_VIEW: {
       // Zurueck zum K.O.-Intro
       if (backButton->contains(x, y)) {
         _state = WC_KNOCKOUT_INTRO;
         draw();
         return -1;
       }
+      // Bracket-Pagination (4 Paarungen pro Seite)
+      int matchCount = getMatchCountForRound(_viewingRound);
+      int maxPages = (matchCount + 3) / 4;  // Aufgerundet, 4 pro Seite
+      if (_bracketPage > 0 && bracketPrevButton->contains(x, y)) {
+        _bracketPage--;
+        draw();
+        return -1;
+      }
+      if (_bracketPage < maxPages - 1 && bracketNextButton->contains(x, y)) {
+        _bracketPage++;
+        draw();
+        return -1;
+      }
       // Runden-Navigation
       if (prevRoundButton->contains(x, y) && _viewingRound > 0) {
         _viewingRound--;
+        _bracketPage = 0;  // Reset bei Rundenwechsel
         draw();
         return -1;
       }
       if (nextRoundButton->contains(x, y) && _viewingRound < 4) {
         _viewingRound++;
+        _bracketPage = 0;  // Reset bei Rundenwechsel
         draw();
         return -1;
       }
@@ -250,6 +340,7 @@ int WorldCupTournament::handleTouch(int16_t x, int16_t y) {
         return 1;
       }
       break;
+    }
 
     case WC_ELIMINATED:
       if (spectatorButton->contains(x, y)) {
@@ -462,13 +553,32 @@ int WorldCupTournament::simulateCPUMatch(int team1Index, int team2Index) {
   int tierDiff = (int)tier2 - (int)tier1;  // positiv = Team 1 staerker
 
   // Basis-Torwahrscheinlichkeit
-  int team1Strength = 50 + (tierDiff * 15);  // 5-95%
-  team1Strength = constrain(team1Strength, 20, 80);
+  int team1Strength = 50 + (tierDiff * 12);
+
+  // Tagesform: Zufaelliger Bonus/Malus fuer beide Teams (-10 bis +10)
+  int form1 = random(-10, 11);
+  int form2 = random(-10, 11);
+  team1Strength += (form1 - form2);
+
+  // Upset-Chance (10%): Schwächeres Team bekommt grossen Boost
+  bool upset = (random(0, 100) < 10);
+  if (upset) {
+    if (tierDiff > 0) {
+      // Team 1 ist staerker, Team 2 bekommt Upset-Bonus
+      team1Strength -= random(20, 31);
+    } else if (tierDiff < 0) {
+      // Team 2 ist staerker, Team 1 bekommt Upset-Bonus
+      team1Strength += random(20, 31);
+    }
+  }
+
+  // Erweiterte Grenzen fuer mehr Varianz
+  team1Strength = constrain(team1Strength, 12, 88);
 
   int goals1 = 0, goals2 = 0;
 
-  // 5 "Chancen" pro Team
-  for (int i = 0; i < 5; i++) {
+  // 4 "Chancen" pro Team (weniger = mehr Varianz)
+  for (int i = 0; i < 4; i++) {
     if (random(0, 100) < team1Strength) goals1++;
     if (random(0, 100) < (100 - team1Strength)) goals2++;
   }
@@ -477,9 +587,15 @@ int WorldCupTournament::simulateCPUMatch(int team1Index, int team2Index) {
   goals1 = min(goals1, 5);
   goals2 = min(goals2, 5);
 
-  Serial.printf("WorldCup: CPU Match %s %d:%d %s\n",
-    WM_TEAMS[team1Index].abbrev, goals1, goals2,
-    WM_TEAMS[team2Index].abbrev);
+  if (upset && tierDiff != 0) {
+    Serial.printf("WorldCup: UPSET! %s %d:%d %s\n",
+      WM_TEAMS[team1Index].abbrev, goals1, goals2,
+      WM_TEAMS[team2Index].abbrev);
+  } else {
+    Serial.printf("WorldCup: CPU Match %s %d:%d %s\n",
+      WM_TEAMS[team1Index].abbrev, goals1, goals2,
+      WM_TEAMS[team2Index].abbrev);
+  }
 
   return goals1 * 10 + goals2;  // Encoded result
 }
@@ -523,64 +639,152 @@ void WorldCupTournament::advanceToKnockout() {
 
 void WorldCupTournament::buildKnockoutBracket() {
   // Vereinfachter Bracket-Aufbau
-  // In der echten WM gibt es komplexe Regeln fuer die Paarungen
-  // Hier: Zufaellige Auswahl aus anderen Gruppen
+  // Sammle alle qualifizierten Teams aus den Gruppen
 
-  int bracketIdx = 0;
+  int qualifiedTeams[32];
+  int qualCount = 0;
 
-  // Alle Gruppenersten und -zweiten + 8 beste Dritte
+  // Erste und Zweite jeder Gruppe (24 Teams)
   for (int g = 0; g < WM_GROUP_COUNT; g++) {
-    // Erstmal nur Erste und Zweite jeder Gruppe
-    // (Vereinfachte Version ohne beste-Dritte-Logik)
-    _bracketTeams[bracketIdx++] = WM_GROUPS[g].teamIndices[0];  // Vereinfacht
-    if (bracketIdx < 32) {
-      _bracketTeams[bracketIdx++] = WM_GROUPS[g].teamIndices[1];
+    GroupTable* table = (g == _playerGroupIndex) ? &_groupTable : &_allGroups[g];
+    qualifiedTeams[qualCount++] = table->getStanding(0).teamIndex;  // Erster
+    qualifiedTeams[qualCount++] = table->getStanding(1).teamIndex;  // Zweiter
+  }
+
+  // 8 beste Dritte (vereinfacht: alle Dritten mit >= 3 Punkten)
+  for (int g = 0; g < WM_GROUP_COUNT && qualCount < 32; g++) {
+    GroupTable* table = (g == _playerGroupIndex) ? &_groupTable : &_allGroups[g];
+    GroupStanding third = table->getStanding(2);
+    if (third.points >= 3) {
+      qualifiedTeams[qualCount++] = third.teamIndex;
     }
   }
 
-  // Rest mit zufaelligen Dritten fuellen
-  while (bracketIdx < 32) {
+  // Falls noch nicht 32 Teams: zufaellig auffuellen
+  while (qualCount < 32) {
     int g = random(0, WM_GROUP_COUNT);
-    _bracketTeams[bracketIdx++] = WM_GROUPS[g].teamIndices[2];
+    GroupTable* table = (g == _playerGroupIndex) ? &_groupTable : &_allGroups[g];
+    qualifiedTeams[qualCount++] = table->getStanding(2).teamIndex;
   }
+
+  // Spieler muss dabei sein!
+  bool playerIncluded = false;
+  for (int i = 0; i < 32; i++) {
+    if (qualifiedTeams[i] == _playerTeamIndex) {
+      playerIncluded = true;
+      break;
+    }
+  }
+  if (!playerIncluded) {
+    qualifiedTeams[31] = _playerTeamIndex;  // Spieler am Ende einfuegen
+  }
+
+  // Bracket fuellen: Erste gegen Dritte, Zweite gegen Zweite (vereinfacht)
+  // Spieler in die erste Haelfte des Brackets
+  int playerPos = -1;
+  for (int i = 0; i < 32; i++) {
+    if (qualifiedTeams[i] == _playerTeamIndex) {
+      playerPos = i;
+      break;
+    }
+  }
+
+  // Spieler an Position 0 verschieben (fuer einfachere Bracket-Verfolgung)
+  if (playerPos > 0) {
+    int temp = qualifiedTeams[0];
+    qualifiedTeams[0] = qualifiedTeams[playerPos];
+    qualifiedTeams[playerPos] = temp;
+  }
+
+  // In Bracket kopieren
+  for (int i = 0; i < 32; i++) {
+    _bracketTeams[i] = qualifiedTeams[i];
+  }
+
+  // Bracket-Results zuruecksetzen
+  for (int i = 0; i < 31; i++) {
+    _bracketWinners[i] = -1;
+    _bracketResults[i][0] = 0;
+    _bracketResults[i][1] = 0;
+    _bracketPlayed[i] = false;
+    _bracketPenalty[i] = false;
+    _bracketPenaltyResults[i][0] = 0;
+    _bracketPenaltyResults[i][1] = 0;
+  }
+
+  Serial.printf("WorldCup: Bracket built with %d teams, player at pos 0\n", qualCount);
 }
 
 void WorldCupTournament::selectNextKnockoutOpponent() {
-  // Waehle einen Gegner basierend auf der K.O.-Runde
-  // Regel: Gegner darf nicht aus der eigenen Gruppe sein (in R32)
+  // Finde den korrekten Gegner basierend auf der Bracket-Struktur
+  int matchCount = getMatchCountForRound(_knockoutRound);
 
-  int attempts = 0;
-  do {
-    // Zufaelligen Index im Bracket waehlen
-    int idx = random(0, 32);
-    _currentOpponentIndex = _bracketTeams[idx];
-    attempts++;
-  } while (
-    (_currentOpponentIndex == _playerTeamIndex ||
-     (_knockoutRound == 0 && findGroupForTeam(_currentOpponentIndex) == _playerGroupIndex)) &&
-    attempts < 50
-  );
+  for (int m = 0; m < matchCount; m++) {
+    int matchIdx = getMatchIndexForRound(_knockoutRound, m);
+    int team1, team2;
+    getTeamsForMatch(matchIdx, team1, team2);
 
-  // Fallback: Einfach irgendeinen anderen Gegner nehmen
-  if (_currentOpponentIndex == _playerTeamIndex || _currentOpponentIndex < 0) {
-    for (int i = 0; i < 32; i++) {
-      if (_bracketTeams[i] != _playerTeamIndex && _bracketTeams[i] >= 0) {
-        _currentOpponentIndex = _bracketTeams[i];
-        break;
-      }
+    // Prüfe ob der Spieler in diesem Match ist
+    if (team1 == _playerTeamIndex) {
+      _currentOpponentIndex = team2;
+      Serial.printf("WorldCup: K.O. Round %d Match %d - %s vs %s\n",
+        _knockoutRound, m,
+        WM_TEAMS[_playerTeamIndex].abbrev,
+        WM_TEAMS[_currentOpponentIndex].abbrev);
+      return;
+    }
+    if (team2 == _playerTeamIndex) {
+      _currentOpponentIndex = team1;
+      Serial.printf("WorldCup: K.O. Round %d Match %d - %s vs %s\n",
+        _knockoutRound, m,
+        WM_TEAMS[_playerTeamIndex].abbrev,
+        WM_TEAMS[_currentOpponentIndex].abbrev);
+      return;
     }
   }
 
-  Serial.printf("WorldCup: K.O. Round %d - %s vs %s\n",
-    _knockoutRound,
-    WM_TEAMS[_playerTeamIndex].abbrev,
-    WM_TEAMS[_currentOpponentIndex].abbrev);
+  // Fallback (sollte nicht passieren)
+  Serial.println("WorldCup: ERROR - Player not found in bracket!");
+  _currentOpponentIndex = _bracketTeams[1];
 }
 
 void WorldCupTournament::handleKnockoutMatchResult(int playerGoals, int cpuGoals) {
   Serial.printf("WorldCup: K.O. match result %s %d:%d %s (round=%d)\n",
     WM_TEAMS[_playerTeamIndex].abbrev, playerGoals, cpuGoals,
     WM_TEAMS[_currentOpponentIndex].abbrev, _knockoutRound);
+
+  // Finde das Spieler-Match im Bracket und speichere Ergebnis
+  int matchCount = getMatchCountForRound(_knockoutRound);
+  for (int m = 0; m < matchCount; m++) {
+    int matchIdx = getMatchIndexForRound(_knockoutRound, m);
+    int team1, team2;
+    getTeamsForMatch(matchIdx, team1, team2);
+
+    if ((team1 == _playerTeamIndex && team2 == _currentOpponentIndex) ||
+        (team2 == _playerTeamIndex && team1 == _currentOpponentIndex)) {
+      // Match gefunden - Ergebnis speichern
+      if (team1 == _playerTeamIndex) {
+        _bracketResults[matchIdx][0] = playerGoals;
+        _bracketResults[matchIdx][1] = cpuGoals;
+      } else {
+        _bracketResults[matchIdx][0] = cpuGoals;
+        _bracketResults[matchIdx][1] = playerGoals;
+      }
+      _bracketPlayed[matchIdx] = true;
+
+      // Gewinner eintragen
+      if (playerGoals > cpuGoals) {
+        _bracketWinners[matchIdx] = _playerTeamIndex;
+      } else {
+        _bracketWinners[matchIdx] = _currentOpponentIndex;
+      }
+
+      Serial.printf("WorldCup: Bracket match %d recorded: %d:%d, winner=%s\n",
+        matchIdx, _bracketResults[matchIdx][0], _bracketResults[matchIdx][1],
+        WM_TEAMS[_bracketWinners[matchIdx]].abbrev);
+      break;
+    }
+  }
 
   if (playerGoals > cpuGoals) {
     // Gewonnen
@@ -638,10 +842,31 @@ const char* WorldCupTournament::getCurrentRoundName() {
 
 // ========== ELFMETERSCHIESSEN ==========
 
-void WorldCupTournament::startPenaltyShootout() {
+void WorldCupTournament::startPenaltyShootout(int playerGoals, int cpuGoals) {
   _playerPenalties = 0;
   _cpuPenalties = 0;
   _penaltyRound = 1;
+
+  // Regulaeres Ergebnis (Unentschieden) im Bracket speichern
+  int matchCount = getMatchCountForRound(_knockoutRound);
+  for (int m = 0; m < matchCount; m++) {
+    int matchIdx = getMatchIndexForRound(_knockoutRound, m);
+    int team1, team2;
+    getTeamsForMatch(matchIdx, team1, team2);
+
+    if ((team1 == _playerTeamIndex && team2 == _currentOpponentIndex) ||
+        (team2 == _playerTeamIndex && team1 == _currentOpponentIndex)) {
+      // Regulaeres Ergebnis speichern
+      if (team1 == _playerTeamIndex) {
+        _bracketResults[matchIdx][0] = playerGoals;
+        _bracketResults[matchIdx][1] = cpuGoals;
+      } else {
+        _bracketResults[matchIdx][0] = cpuGoals;
+        _bracketResults[matchIdx][1] = playerGoals;
+      }
+      break;
+    }
+  }
 }
 
 bool WorldCupTournament::handlePenalty(bool playerScored, bool cpuScored) {
@@ -653,7 +878,36 @@ bool WorldCupTournament::handlePenalty(bool playerScored, bool cpuScored) {
   // Nach 3 Schuessen pruefen
   if (_penaltyRound > 3) {
     if (_playerPenalties != _cpuPenalties) {
-      // Entschieden
+      // Entschieden - Elfmeter-Ergebnis separat speichern
+      int matchCount = getMatchCountForRound(_knockoutRound);
+      for (int m = 0; m < matchCount; m++) {
+        int matchIdx = getMatchIndexForRound(_knockoutRound, m);
+        int team1, team2;
+        getTeamsForMatch(matchIdx, team1, team2);
+
+        if ((team1 == _playerTeamIndex && team2 == _currentOpponentIndex) ||
+            (team2 == _playerTeamIndex && team1 == _currentOpponentIndex)) {
+          // Elfmeter-Ergebnis speichern
+          _bracketPenalty[matchIdx] = true;
+          if (team1 == _playerTeamIndex) {
+            _bracketPenaltyResults[matchIdx][0] = _playerPenalties;
+            _bracketPenaltyResults[matchIdx][1] = _cpuPenalties;
+          } else {
+            _bracketPenaltyResults[matchIdx][0] = _cpuPenalties;
+            _bracketPenaltyResults[matchIdx][1] = _playerPenalties;
+          }
+          _bracketPlayed[matchIdx] = true;
+
+          // Gewinner eintragen
+          if (_playerPenalties > _cpuPenalties) {
+            _bracketWinners[matchIdx] = _playerTeamIndex;
+          } else {
+            _bracketWinners[matchIdx] = _currentOpponentIndex;
+          }
+          break;
+        }
+      }
+
       if (_playerPenalties > _cpuPenalties) {
         if (_knockoutRound >= 4) {
           _state = WC_CHAMPION;
@@ -822,6 +1076,9 @@ void WorldCupTournament::drawGroupTable() {
   // Tabelle zeichnen
   displayTable->draw(&tft, _playerTeamIndex);
 
+  // Ergebnisse-Button (oben)
+  resultsButton->draw(&tft);
+
   // Gruppen-Navigation Buttons (oben rechts)
   prevGroupButton->draw(&tft);
   nextGroupButton->draw(&tft);
@@ -833,6 +1090,38 @@ void WorldCupTournament::drawGroupTable() {
   } else {
     // Auf anderer Gruppe: Zurueck zur Spieler-Gruppe
     backButton->draw(&tft);
+  }
+}
+
+void WorldCupTournament::drawGroupResults() {
+  int displayGroupIndex;
+  GroupTable* displayTable;
+
+  // Bestimme welche Gruppe angezeigt wird
+  if (_viewingGroupIndex == -1 || _viewingGroupIndex == _playerGroupIndex) {
+    displayGroupIndex = _playerGroupIndex;
+    displayTable = &_groupTable;
+  } else {
+    displayGroupIndex = _viewingGroupIndex;
+    displayTable = &_allGroups[_viewingGroupIndex];
+  }
+
+  // Ergebnisse zeichnen (mit Seite)
+  displayTable->drawResults(&tft, _playerTeamIndex, _resultsPage);
+
+  // Zurueck-Button
+  backButton->draw(&tft);
+
+  // Gruppen-Navigation
+  prevGroupButton->draw(&tft);
+  nextGroupButton->draw(&tft);
+
+  // Scroll-Buttons (unten rechts)
+  if (_resultsPage > 0) {
+    scrollUpButton->draw(&tft);
+  }
+  if (_resultsPage < 1) {
+    scrollDownButton->draw(&tft);
   }
 }
 
@@ -988,6 +1277,12 @@ WorldCupSave WorldCupTournament::createSave() {
   for (int i = 0; i < 32; i++) save.bracketTeams[i] = _bracketTeams[i];
   for (int i = 0; i < 31; i++) {
     save.bracketWinners[i] = _bracketWinners[i];
+    save.bracketScores[i][0] = _bracketResults[i][0];
+    save.bracketScores[i][1] = _bracketResults[i][1];
+    save.bracketPlayed[i] = _bracketPlayed[i];
+    save.bracketPenalty[i] = _bracketPenalty[i];
+    save.bracketPenaltyScores[i][0] = _bracketPenaltyResults[i][0];
+    save.bracketPenaltyScores[i][1] = _bracketPenaltyResults[i][1];
   }
 
   Serial.printf("WorldCup: Save created - match %d, round %d\n",
@@ -997,7 +1292,6 @@ WorldCupSave WorldCupTournament::createSave() {
 }
 
 void WorldCupTournament::loadFromSave(const WorldCupSave& save) {
-  tft.init();
   pinMode(TFT_BL, OUTPUT);
   digitalWrite(TFT_BL, HIGH);
   tft.setRotation(1);
@@ -1018,7 +1312,16 @@ void WorldCupTournament::loadFromSave(const WorldCupSave& save) {
 
   // Bracket laden
   for (int i = 0; i < 32; i++) _bracketTeams[i] = save.bracketTeams[i];
-  for (int i = 0; i < 31; i++) _bracketWinners[i] = save.bracketWinners[i];
+  for (int i = 0; i < 31; i++) {
+    _bracketWinners[i] = save.bracketWinners[i];
+    _bracketResults[i][0] = save.bracketScores[i][0];
+    _bracketResults[i][1] = save.bracketScores[i][1];
+    _bracketPlayed[i] = save.bracketPlayed[i];
+    _bracketPenalty[i] = save.bracketPenalty[i];
+    _bracketPenaltyResults[i][0] = save.bracketPenaltyScores[i][0];
+    _bracketPenaltyResults[i][1] = save.bracketPenaltyScores[i][1];
+  }
+  _viewingRound = (_knockoutRound >= 0) ? _knockoutRound : 0;
 
   // Alle 12 Gruppen initialisieren
   initAllGroups();
@@ -1071,4 +1374,181 @@ void WorldCupTournament::loadFromSave(const WorldCupSave& save) {
 
   Serial.printf("WorldCup: Loaded save - player=%s match=%d round=%d\n",
     WM_TEAMS[_playerTeamIndex].abbrev, _groupMatchIndex, _knockoutRound);
+}
+
+// ========== K.O.-BRACKET HILFSFUNKTIONEN ==========
+
+int WorldCupTournament::getMatchCountForRound(int round) {
+  // Anzahl Spiele pro Runde
+  switch (round) {
+    case 0: return 16;  // R32
+    case 1: return 8;   // R16
+    case 2: return 4;   // QF
+    case 3: return 2;   // SF
+    case 4: return 1;   // Final
+    default: return 0;
+  }
+}
+
+int WorldCupTournament::getMatchIndexForRound(int round, int matchInRound) {
+  // Globaler Match-Index im Bracket
+  int base = 0;
+  for (int r = 0; r < round; r++) {
+    base += getMatchCountForRound(r);
+  }
+  return base + matchInRound;
+}
+
+void WorldCupTournament::getTeamsForMatch(int matchIndex, int& team1, int& team2) {
+  // Finde welche Runde dieser Match gehoert
+  int round = 0;
+  int idx = matchIndex;
+  while (idx >= getMatchCountForRound(round)) {
+    idx -= getMatchCountForRound(round);
+    round++;
+  }
+
+  if (round == 0) {
+    // R32: Teams kommen direkt aus _bracketTeams
+    team1 = _bracketTeams[idx * 2];
+    team2 = _bracketTeams[idx * 2 + 1];
+  } else {
+    // Spaetere Runden: Teams kommen aus vorherigen Gewinnern
+    int prevRoundBase = getMatchIndexForRound(round - 1, 0);
+    int match1 = prevRoundBase + idx * 2;
+    int match2 = prevRoundBase + idx * 2 + 1;
+    team1 = _bracketWinners[match1];
+    team2 = _bracketWinners[match2];
+  }
+}
+
+const char* WorldCupTournament::getRoundName(int round) {
+  switch (round) {
+    case 0: return "RUNDE DER 32";
+    case 1: return "ACHTELFINALE";
+    case 2: return "VIERTELFINALE";
+    case 3: return "HALBFINALE";
+    case 4: return "FINALE";
+    default: return "?";
+  }
+}
+
+void WorldCupTournament::drawBracket() {
+  tft.fillScreen(TFT_BLACK);
+
+  // Header
+  backButton->draw(&tft);
+
+  tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+  tft.setTextSize(2);
+  tft.setCursor(60, 10);
+  tft.print(getRoundName(_viewingRound));
+
+  // Matches dieser Runde anzeigen
+  int matchCount = getMatchCountForRound(_viewingRound);
+  int startY = 45;
+  int rowHeight = 32;  // Mehr Platz pro Paarung
+
+  // Maximal 4 Matches pro Seite
+  int matchesPerPage = 4;
+  int displayCount = min(matchCount - _bracketPage * matchesPerPage, matchesPerPage);
+  int displayOffset = _bracketPage * matchesPerPage;
+
+  // Anzahl der Seiten fuer diese Runde
+  int maxPages = (matchCount + matchesPerPage - 1) / matchesPerPage;
+
+  // Pagination-Buttons rechts anzeigen (nur wenn noetig)
+  if (maxPages > 1) {
+    if (_bracketPage > 0) {
+      bracketPrevButton->draw(&tft);
+    }
+    if (_bracketPage < maxPages - 1) {
+      bracketNextButton->draw(&tft);
+    }
+
+    // Seiten-Anzeige rechts
+    tft.setTextSize(1);
+    tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+    tft.setCursor(270, 150);
+    tft.printf("%d/%d", _bracketPage + 1, maxPages);
+  }
+
+  // Runden-Navigation unten
+  if (_viewingRound > 0) {
+    prevRoundButton->draw(&tft);
+  }
+  if (_viewingRound < 4) {
+    nextRoundButton->draw(&tft);
+  }
+
+  tft.setTextSize(1);
+
+  for (int i = 0; i < displayCount; i++) {
+    int matchIdx = getMatchIndexForRound(_viewingRound, displayOffset + i);
+    int team1, team2;
+    getTeamsForMatch(matchIdx, team1, team2);
+
+    int y = startY + i * rowHeight;
+
+    // Spieler-Match hervorheben
+    bool isPlayerMatch = (team1 == _playerTeamIndex || team2 == _playerTeamIndex);
+    if (isPlayerMatch) {
+      tft.fillRect(5, y - 4, 255, rowHeight - 2, 0x0320);  // Dunkelgruen
+    }
+
+    // Team 1
+    if (team1 >= 0) {
+      tft.setTextColor(TFT_WHITE, isPlayerMatch ? 0x0320 : TFT_BLACK);
+      tft.setCursor(10, y);
+      tft.print(WM_TEAMS[team1].abbrev);
+
+      // Mini-Flagge
+      FlagDrawer::drawWMTeamFlag(&tft, 45, y - 3, 22, 15, team1);
+    } else {
+      tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+      tft.setCursor(10, y);
+      tft.print("???");
+    }
+
+    // Ergebnis oder "vs"
+    tft.setCursor(115, y);
+    if (_bracketPlayed[matchIdx]) {
+      // Ergebnis anzeigen
+      tft.setTextColor(TFT_CYAN, isPlayerMatch ? 0x0320 : TFT_BLACK);
+      tft.printf("%d : %d", _bracketResults[matchIdx][0], _bracketResults[matchIdx][1]);
+
+      // Bei Elfmeter: zusaetzlich Elfmeter-Stand anzeigen
+      if (_bracketPenalty[matchIdx]) {
+        tft.setTextColor(TFT_YELLOW, isPlayerMatch ? 0x0320 : TFT_BLACK);
+        tft.setCursor(100, y + 12);
+        tft.printf("n.E. %d:%d", _bracketPenaltyResults[matchIdx][0], _bracketPenaltyResults[matchIdx][1]);
+      }
+    } else if (_viewingRound == _knockoutRound && isPlayerMatch) {
+      // Spieler's naechstes Spiel
+      tft.setTextColor(TFT_GREEN, 0x0320);
+      tft.print("vs");
+    } else {
+      tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+      tft.print("-:-");
+    }
+
+    // Team 2
+    if (team2 >= 0) {
+      tft.setTextColor(TFT_WHITE, isPlayerMatch ? 0x0320 : TFT_BLACK);
+      tft.setCursor(170, y);
+      tft.print(WM_TEAMS[team2].abbrev);
+
+      // Mini-Flagge
+      FlagDrawer::drawWMTeamFlag(&tft, 205, y - 3, 22, 15, team2);
+    } else {
+      tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+      tft.setCursor(170, y);
+      tft.print("???");
+    }
+  }
+
+  // Anpfiff-Button wenn eigene Runde und noch nicht gespielt
+  if (_viewingRound == _knockoutRound && _state == WC_BRACKET_VIEW) {
+    kickoffButton->draw(&tft);
+  }
 }

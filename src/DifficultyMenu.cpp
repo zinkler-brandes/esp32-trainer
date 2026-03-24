@@ -39,7 +39,6 @@ DifficultyMenu::DifficultyMenu() {
 }
 
 void DifficultyMenu::init() {
-  tft.init();
   pinMode(TFT_BL, OUTPUT);
   digitalWrite(TFT_BL, HIGH);
   tft.setRotation(1);

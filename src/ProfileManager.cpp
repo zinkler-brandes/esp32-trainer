@@ -99,6 +99,9 @@ bool ProfileManager::loadIndex() {
       p.stadionQuizBestMedal = v["stadionMedal"] | 0;
       p.kennzeichenQuizBestMedal = v["kennzMedal"] | 0;
 
+      // Intro-Status laden
+      p.seenIntros = v["seenIntros"] | 0;
+
       _profiles.push_back(p);
     }
   }
@@ -166,6 +169,11 @@ bool ProfileManager::saveIndex() {
     }
     if (p.kennzeichenQuizBestMedal > 0) {
       obj["kennzMedal"] = p.kennzeichenQuizBestMedal;
+    }
+
+    // Intro-Status speichern
+    if (p.seenIntros > 0) {
+      obj["seenIntros"] = p.seenIntros;
     }
   }
 
@@ -617,4 +625,30 @@ bool ProfileManager::deleteWorldCupSave(int profileId) {
   Serial.printf("WorldCupSave: Deleting %s\n", path.c_str());
 
   return _sd->deleteFile(path.c_str());
+}
+
+// ========== Intro-Status ==========
+
+bool ProfileManager::hasSeenIntro(int profileId, uint16_t introType) {
+  for (const Profile& p : _profiles) {
+    if (p.id == profileId) {
+      return (p.seenIntros & introType) != 0;
+    }
+  }
+  return false;
+}
+
+bool ProfileManager::setIntroSeen(int profileId, uint16_t introType) {
+  for (auto& p : _profiles) {
+    if (p.id == profileId) {
+      if ((p.seenIntros & introType) == 0) {
+        p.seenIntros |= introType;
+        Serial.printf("ProfileManager: Set intro %d seen for profile %d\n",
+          introType, profileId);
+        return saveIndex();
+      }
+      return true;  // Schon gesehen
+    }
+  }
+  return false;
 }

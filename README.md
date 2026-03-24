@@ -77,9 +77,3 @@ RGB LED:
 
 LDR: GPIO 34 (analog)
 ```
-
-## Nächste Schritte
-- Touchscreen implementieren
-- SD Card nutzen
-- WiFi einbinden
-- Eigene GUI entwickeln

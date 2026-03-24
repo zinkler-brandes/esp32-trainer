@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tiki Taka - Spiel dich schlau</title>
+  <meta name="description" content="Der Lerntrainer für kleine Fußballfans. Einmaleins üben, Turniere gewinnen, Flaggen raten. Für Grundschüler.">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- REGENBOGEN OBEN -->
+  <div class="rainbow-bar"></div>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-content">
+
+      <!-- Logo mit bunten Buchstaben -->
+      <div class="hero-logo">
+        <span class="letter">T</span>
+        <span class="letter">I</span>
+        <span class="letter">K</span>
+        <span class="letter">I</span>
+        <span class="letter">T</span>
+        <span class="letter">A</span>
+        <span class="letter">K</span>
+        <span class="letter">A</span>
+      </div>
+
+      <p class="hero-tagline">Spiel dich schlau.</p>
+
+      <div class="hero-video">
+        <!-- Hier kommt dein Video -->
+        <div class="video-placeholder">
+          <span>Video kommt hier</span>
+        </div>
+      </div>
+
+      <div class="hero-cta">
+        <a href="#nachbauen" class="btn btn-rainbow">Selber bauen</a>
+        <a href="#features" class="btn btn-outline">Was ist das?</a>
+      </div>
+    </div>
+
+    <div class="rainbow-bar rainbow-bar-bottom"></div>
+  </section>
+
+  <!-- WAS IST DAS? -->
+  <section id="features" class="section section-dark">
+    <div class="container">
+      <h2>Mathe? Macht jetzt Spaß.</h2>
+      <p class="section-intro">Ein Handheld-Lerntrainer für Grundschüler. Rechnen wie im Fußballspiel - richtige Antwort = Tor!</p>
+
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🧮</div>
+          <h3>Einmaleins-Training</h3>
+          <p>Plus, Minus, Mal, Geteilt - verpackt als Fußballspiel. Richtige Antwort = Torschuss.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🏆</div>
+          <h3>Echte Turniere</h3>
+          <p>DFB-Pokal, Champions League, WM 2026 - kämpfe dich durch die Runden bis zum Titel.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">🎯</div>
+          <h3>Quiz-Modi</h3>
+          <p>Flaggen raten, Stadien erkennen, Vereine zuordnen, Kennzeichen lernen.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">👤</div>
+          <h3>Eigenes Profil</h3>
+          <p>Fortschritt wird gespeichert. Mehrere Kinder? Jeder hat sein eigenes Profil.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCREENSHOTS -->
+  <section class="section section-black">
+    <div class="container">
+      <h2>So sieht's aus</h2>
+
+      <div class="screenshot-grid">
+        <figure class="screenshot">
+          <div class="screenshot-placeholder">Screenshot: Hauptmenü</div>
+          <figcaption>Das Hauptmenü</figcaption>
+        </figure>
+
+        <figure class="screenshot">
+          <div class="screenshot-placeholder">Screenshot: Mathe-Spiel</div>
+          <figcaption>Mathe-Training</figcaption>
+        </figure>
+
+        <figure class="screenshot">
+          <div class="screenshot-placeholder">Screenshot: WM-Turnier</div>
+          <figcaption>WM 2026</figcaption>
+        </figure>
+
+        <figure class="screenshot">
+          <div class="screenshot-placeholder">Screenshot: Flaggen-Quiz</div>
+          <figcaption>Flaggen-Quiz</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- TURNIERE -->
+  <section class="section section-dark">
+    <div class="container">
+      <h2>Drei Wege zum Ruhm</h2>
+
+      <div class="tournament-grid">
+        <div class="tournament-card">
+          <div class="tournament-trophy">🏆</div>
+          <h3>DFB-Pokal</h3>
+          <p>6 Runden gegen Bundesliga-Gegner. Vom Regionalligisten bis zum Finale in Berlin.</p>
+        </div>
+
+        <div class="tournament-card">
+          <div class="tournament-trophy">⭐</div>
+          <h3>Champions League</h3>
+          <p>Die Königsklasse. Europas beste Teams. Schaffst du es bis zum Henkelpott?</p>
+        </div>
+
+        <div class="tournament-card">
+          <div class="tournament-trophy">🌍</div>
+          <h3>WM 2026</h3>
+          <p>48 Nationen. Gruppenphase. K.O.-Runden. Werde Weltmeister!</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SELBER BAUEN -->
+  <section id="nachbauen" class="section section-black">
+    <div class="container">
+      <h2>Bau dir deinen eigenen</h2>
+      <p class="section-intro">Alles Open Source. Alles zum Selbermachen. Kosten: ca. 15-20€.</p>
+
+      <div class="build-steps">
+        <div class="build-step">
+          <div class="step-number">1</div>
+          <h3>Hardware bestellen</h3>
+          <p>Ein "Cheap Yellow Display" (ESP32 mit Touchscreen) für ~12€ bei AliExpress oder ~18€ bei Amazon.</p>
+          <a href="#hardware" class="link-arrow">Zur Einkaufsliste →</a>
+        </div>
+
+        <div class="build-step">
+          <div class="step-number">2</div>
+          <h3>Gehäuse drucken</h3>
+          <p>3D-Druck-Dateien kostenlos. Kein Drucker? Makerspace, Online-Service, oder bei mir bestellen.</p>
+          <a href="#gehaeuse" class="link-arrow">STL-Dateien →</a>
+        </div>
+
+        <div class="build-step">
+          <div class="step-number">3</div>
+          <h3>Firmware flashen</h3>
+          <p>USB-Kabel rein, Website öffnen, Knopf drücken. Fertig. Kein Programmieren nötig.</p>
+          <a href="flasher.html" class="link-arrow">Zum Web-Flasher →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HARDWARE -->
+  <section id="hardware" class="section section-dark">
+    <div class="container">
+      <h2>Einkaufsliste</h2>
+
+      <div class="hardware-list">
+        <div class="hardware-item">
+          <div class="hardware-check">✓</div>
+          <div class="hardware-info">
+            <h4>ESP32-2432S028 "Cheap Yellow Display"</h4>
+            <p>Der Hauptteil. ESP32 mit 2.8" Touchscreen.</p>
+          </div>
+          <div class="hardware-price">~12-18€</div>
+        </div>
+
+        <div class="hardware-item">
+          <div class="hardware-check">✓</div>
+          <div class="hardware-info">
+            <h4>MicroSD-Karte</h4>
+            <p>Für Profile und Spielstände. 2GB reichen.</p>
+          </div>
+          <div class="hardware-price">~4€</div>
+        </div>
+
+        <div class="hardware-item">
+          <div class="hardware-check">✓</div>
+          <div class="hardware-info">
+            <h4>USB-C Kabel</h4>
+            <p>Zum Flashen und Laden. Hast du wahrscheinlich schon.</p>
+          </div>
+          <div class="hardware-price">-</div>
+        </div>
+
+        <div class="hardware-item">
+          <div class="hardware-check">✓</div>
+          <div class="hardware-info">
+            <h4>4× M2×6 Schrauben</h4>
+            <p>Für das Gehäuse. Gibts im 100er-Pack.</p>
+          </div>
+          <div class="hardware-price">~3€</div>
+        </div>
+      </div>
+
+      <p class="hardware-total">Gesamt: <strong>ca. 15-25€</strong></p>
+    </div>
+  </section>
+
+  <!-- GEHÄUSE -->
+  <section id="gehaeuse" class="section section-black">
+    <div class="container">
+      <h2>3D-Druck Gehäuse</h2>
+      <p class="section-intro">Zwei Teile, vier Schrauben, fertig.</p>
+
+      <div class="case-preview">
+        <div class="case-placeholder">
+          3D-Modell Vorschau
+        </div>
+      </div>
+
+      <div class="case-downloads">
+        <a href="#" class="btn btn-rainbow">STL herunterladen</a>
+        <p class="case-hint">Druckzeit: ca. 2 Stunden | Material: PLA | Keine Supports nötig</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FERTIG KAUFEN -->
+  <section class="section section-rainbow">
+    <div class="container container-narrow">
+      <h2>Keine Lust zu basteln?</h2>
+      <p class="section-intro">Kein Problem. Ich baue dir einen fertig zusammen und schicke ihn dir.</p>
+
+      <div class="buy-box">
+        <div class="buy-price">30€</div>
+        <div class="buy-details">inkl. Versand innerhalb Deutschlands</div>
+        <a href="mailto:tim@zinklerbrandes.de?subject=Tiki%20Taka%20bestellen&body=Hallo%2C%0A%0Aich%20möchte%20gerne%20einen%20Tiki%20Taka%20bestellen.%0A%0AMeine%20Adresse%3A%0A%0A" class="btn btn-dark">Per E-Mail anfragen</a>
+        <p class="buy-note">Handgemacht, kein Massenprodukt. Lieferzeit ca. 1-2 Wochen.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- REGENBOGEN -->
+  <div class="rainbow-bar"></div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-brand">
+          <strong>Tiki Taka</strong>
+          <p>Ein Open-Source-Projekt von Tim Zinkler-Brandes</p>
+        </div>
+
+        <div class="footer-links">
+          <a href="https://github.com/zinkler-brandes/esp32-trainer">GitHub</a>
+          <a href="https://github.com/zinkler-brandes/esp32-trainer/blob/main/LICENSE">Lizenz (CC BY-NC-SA 4.0)</a>
+          <a href="impressum.html">Impressum</a>
+        </div>
+      </div>
+
+      <p class="footer-note">
+        Marken wie DFB-Pokal, Champions League, FIFA WM sind Eigentum ihrer jeweiligen Inhaber.<br>
+        Dieses Projekt ist nicht kommerziell und steht in keiner Verbindung zu diesen Organisationen.
+      </p>
+    </div>
+  </footer>
+
+</body>
+</html>

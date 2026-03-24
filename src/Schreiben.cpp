@@ -45,7 +45,6 @@ Schreiben::Schreiben() : _currentWord(""), _wordsCompleted(0), _stepPosition(0),
 }
 
 void Schreiben::init() {
-  _tft.init();
   pinMode(TFT_BL, OUTPUT);
   digitalWrite(TFT_BL, HIGH);
   _tft.setRotation(1);

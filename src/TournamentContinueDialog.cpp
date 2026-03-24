@@ -11,7 +11,6 @@ TournamentContinueDialog::TournamentContinueDialog() {
 }
 
 void TournamentContinueDialog::init() {
-  tft.init();
   pinMode(TFT_BL, OUTPUT);
   digitalWrite(TFT_BL, HIGH);
   tft.setRotation(1);

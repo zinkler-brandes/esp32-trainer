@@ -101,8 +101,8 @@ const FlagData WM_FLAGS[] = {
   {FLAG_BICOLOR_H, FLAG_DARKBLUE, FLAG_YELLOW, 0, 0, 0},
   // 41: Suedafrika - Custom (Y-Form)
   {FLAG_CUSTOM, 0, 0, 0, 0, CUSTOM_SOUTH_AFRICA},
-  // 42: Paraguay - Rot-Weiss-Blau horizontal
-  {FLAG_TRICOLOR_H, FLAG_RED, FLAG_WHITE, FLAG_DARKBLUE, 0, 0},
+  // 42: Paraguay - Rot-Weiss-Blau mit Stern (Wappen)
+  {FLAG_CUSTOM, 0, 0, 0, 0, CUSTOM_PARAGUAY},
   // 43: Bolivien - Rot-Gelb-Gruen horizontal
   {FLAG_TRICOLOR_H, FLAG_RED, FLAG_YELLOW, FLAG_DARKGREEN, 0, 0},
   // 44: Jamaika - Custom (Schwarz-Gruen-Gold diagonal)
@@ -204,6 +204,9 @@ void FlagDrawer::drawFlag(TFT_eSPI* tft, int x, int y, int w, int h, const FlagD
           break;
         case CUSTOM_SPAIN:
           drawSpain(tft, x, y, w, h);
+          break;
+        case CUSTOM_PARAGUAY:
+          drawParaguay(tft, x, y, w, h);
           break;
         default:
           // Fallback: Einfach grau
@@ -538,20 +541,28 @@ void FlagDrawer::drawScotland(TFT_eSPI* tft, int x, int y, int w, int h) {
   tft->fillRect(x, y, w, h, FLAG_DARKBLUE);
 
   // Weisses Diagonalkreuz (St. Andrew's Cross / Saltire)
-  // Dicke Linien von Ecke zu Ecke
-  int thickness = max(2, h / 8);
+  int thickness = max(2, h / 5);
 
   // Diagonale von oben-links nach unten-rechts
   for (int t = -thickness; t <= thickness; t++) {
     tft->drawLine(x, y + t, x + w - 1, y + h - 1 + t, FLAG_WHITE);
-    tft->drawLine(x + t, y, x + w - 1 + t, y + h - 1, FLAG_WHITE);
   }
 
   // Diagonale von oben-rechts nach unten-links
   for (int t = -thickness; t <= thickness; t++) {
     tft->drawLine(x + w - 1, y + t, x, y + h - 1 + t, FLAG_WHITE);
-    tft->drawLine(x + w - 1 + t, y, x + t, y + h - 1, FLAG_WHITE);
   }
+
+  // Blaue Dreiecke in den Ecken zeichnen um Ueberstand zu verdecken
+  int cornerSize = thickness + 2;
+  // Oben links
+  tft->fillTriangle(x, y, x + cornerSize, y, x, y + cornerSize, FLAG_DARKBLUE);
+  // Oben rechts
+  tft->fillTriangle(x + w - 1, y, x + w - 1 - cornerSize, y, x + w - 1, y + cornerSize, FLAG_DARKBLUE);
+  // Unten links
+  tft->fillTriangle(x, y + h - 1, x + cornerSize, y + h - 1, x, y + h - 1 - cornerSize, FLAG_DARKBLUE);
+  // Unten rechts
+  tft->fillTriangle(x + w - 1, y + h - 1, x + w - 1 - cornerSize, y + h - 1, x + w - 1, y + h - 1 - cornerSize, FLAG_DARKBLUE);
 }
 
 void FlagDrawer::drawSwitzerland(TFT_eSPI* tft, int x, int y, int w, int h) {
@@ -612,6 +623,20 @@ void FlagDrawer::drawPortugal(TFT_eSPI* tft, int x, int y, int w, int h) {
 
   // Weisse Punkte im Schild (vereinfacht)
   tft->fillCircle(cx, cy, 2, FLAG_WHITE);
+}
+
+void FlagDrawer::drawParaguay(TFT_eSPI* tft, int x, int y, int w, int h) {
+  // Rot-Weiss-Blau Trikolore (horizontal)
+  int stripeH = h / 3;
+  tft->fillRect(x, y, w, stripeH, FLAG_RED);
+  tft->fillRect(x, y + stripeH, w, stripeH, FLAG_WHITE);
+  tft->fillRect(x, y + 2 * stripeH, w, h - 2 * stripeH, FLAG_DARKBLUE);
+
+  // Goldener Stern in der Mitte (vereinfachtes Wappen)
+  int cx = x + w / 2;
+  int cy = y + h / 2;
+  int starR = min(w, h) / 6;
+  drawStar5(tft, cx, cy, starR, FLAG_GOLD);
 }
 
 // === Hilfsfunktionen ===

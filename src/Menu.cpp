@@ -13,23 +13,22 @@ Menu::Menu() : _playerName("") {
   int startY = 55;
   int spacing = 15;
 
-  // Zeile 1: Mathe (links), Rekorde (rechts)
+  // Zeile 1: Mathe (links), Rekorde (rechts) - Regenbogenfarben
   matheButton = new Button(leftX, startY, btnWidth, btnHeight, "Mathe");
-  matheButton->setColors(TFT_BLUE, TFT_WHITE);
+  matheButton->setColors(0xF800, TFT_WHITE);  // Rot
 
   recordsButton = new Button(rightX, startY, btnWidth, btnHeight, "Rekorde");
-  recordsButton->setColors(0xFE60, TFT_BLACK);  // Gold mit schwarzer Schrift
+  recordsButton->setColors(0xFD20, TFT_WHITE);  // Orange
 
   // Zeile 2: Schreiben (links), Quiz (rechts)
   schreibenButton = new Button(leftX, startY + btnHeight + spacing, btnWidth, btnHeight, "Schreiben");
-  schreibenButton->setColors(0x07E0, TFT_BLACK);  // Gruen mit schwarzer Schrift
+  schreibenButton->setColors(0x07E0, TFT_BLACK);  // Grün
 
   quizButton = new Button(rightX, startY + btnHeight + spacing, btnWidth, btnHeight, "Quiz");
-  quizButton->setColors(0xF800, TFT_WHITE);  // Rot mit weisser Schrift
+  quizButton->setColors(0x07FF, TFT_BLACK);  // Cyan
 }
 
 void Menu::init() {
-  tft.init();
   pinMode(TFT_BL, OUTPUT);
   digitalWrite(TFT_BL, HIGH);
   tft.setRotation(1);

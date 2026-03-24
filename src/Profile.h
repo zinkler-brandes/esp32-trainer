@@ -61,6 +61,17 @@ struct RecordsMatrix {
   }
 };
 
+// Bit-Konstanten fuer seenIntros
+#define INTRO_SCHREIBEN      (1 << 0)
+#define INTRO_FLAG_QUIZ      (1 << 1)
+#define INTRO_CLUB_QUIZ      (1 << 2)
+#define INTRO_STADION_QUIZ   (1 << 3)
+#define INTRO_KENNZEICHEN    (1 << 4)
+#define INTRO_EINZELSPIEL    (1 << 5)
+#define INTRO_DFB_POKAL      (1 << 6)
+#define INTRO_CL             (1 << 7)
+#define INTRO_WM             (1 << 8)
+
 struct Profile {
   int id;
   String name;
@@ -72,11 +83,12 @@ struct Profile {
   int clubQuizBestMedal;    // Beste Medaille beim Vereinsquiz (0-3)
   int stadionQuizBestMedal; // Beste Medaille beim Stadionquiz (0-3)
   int kennzeichenQuizBestMedal; // Beste Medaille beim Kennzeichenquiz (0-3)
+  uint16_t seenIntros;      // Bitfeld: welche Intros schon gesehen
 
   Profile() : id(0), name(""), flagQuizBestMedal(0), clubQuizBestMedal(0),
-              stadionQuizBestMedal(0), kennzeichenQuizBestMedal(0) {}
+              stadionQuizBestMedal(0), kennzeichenQuizBestMedal(0), seenIntros(0) {}
   Profile(int _id, const String& _name) : id(_id), name(_name), flagQuizBestMedal(0),
-              clubQuizBestMedal(0), stadionQuizBestMedal(0), kennzeichenQuizBestMedal(0) {}
+              clubQuizBestMedal(0), stadionQuizBestMedal(0), kennzeichenQuizBestMedal(0), seenIntros(0) {}
 };
 
 #endif

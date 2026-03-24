@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tiki Taka - Firmware Installieren</title>
+  <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 2rem;
+      background: linear-gradient(135deg, #1a472a 0%, #2d5a3d 100%);
+      min-height: 100vh;
+      color: #fff;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      text-align: center;
+      opacity: 0.8;
+      margin-bottom: 2rem;
+    }
+
+    .card {
+      background: #fff;
+      color: #333;
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+
+    .steps {
+      margin: 1.5rem 0;
+    }
+
+    .step {
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+    }
+
+    .step-number {
+      background: #1a472a;
+      color: #fff;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      margin-right: 1rem;
+      flex-shrink: 0;
+    }
+
+    .install-container {
+      text-align: center;
+      margin: 2rem 0;
+      padding: 1.5rem;
+      background: #f5f5f5;
+      border-radius: 8px;
+    }
+
+    esp-web-install-button {
+      --esp-tools-button-color: #1a472a;
+    }
+
+    esp-web-install-button button {
+      background: #1a472a;
+      color: #fff;
+      border: none;
+      padding: 1rem 2rem;
+      font-size: 1.2rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.2s;
+    }
+
+    esp-web-install-button button:hover {
+      background: #2d5a3d;
+    }
+
+    .warning {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 1rem;
+      margin: 1.5rem 0;
+      border-radius: 0 8px 8px 0;
+    }
+
+    .warning strong {
+      color: #856404;
+    }
+
+    .help {
+      margin-top: 2rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid #eee;
+    }
+
+    .help summary {
+      cursor: pointer;
+      font-weight: bold;
+      color: #1a472a;
+    }
+
+    .help-content {
+      margin-top: 1rem;
+      font-size: 0.9rem;
+    }
+
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 2rem;
+      color: #fff;
+      opacity: 0.8;
+    }
+
+    .back-link:hover {
+      opacity: 1;
+    }
+
+    .version {
+      text-align: center;
+      margin-top: 1rem;
+      font-size: 0.85rem;
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+  <h1>Tiki Taka</h1>
+  <p class="subtitle">Firmware installieren</p>
+
+  <div class="card">
+    <div class="steps">
+      <div class="step">
+        <span class="step-number">1</span>
+        <span>Schließe das Gerät per <strong>USB-Kabel</strong> an deinen Computer an.</span>
+      </div>
+      <div class="step">
+        <span class="step-number">2</span>
+        <span>Klicke unten auf <strong>"Installieren"</strong>.</span>
+      </div>
+      <div class="step">
+        <span class="step-number">3</span>
+        <span>Wähle den <strong>USB-Port</strong> aus (meist "CP2102" oder "CH340").</span>
+      </div>
+      <div class="step">
+        <span class="step-number">4</span>
+        <span>Warte bis die Installation fertig ist (~1 Minute).</span>
+      </div>
+    </div>
+
+    <div class="warning">
+      <strong>Wichtig:</strong> Nutze Chrome oder Edge. Safari und Firefox werden nicht unterstützt.
+    </div>
+
+    <div class="install-container">
+      <esp-web-install-button manifest="manifest.json">
+        <button slot="activate">Installieren</button>
+        <span slot="unsupported">
+          Dein Browser unterstützt Web-USB nicht.<br>
+          Bitte nutze Chrome oder Edge.
+        </span>
+        <span slot="not-allowed">
+          USB-Zugriff wurde blockiert.<br>
+          Bitte erlaube den Zugriff und versuche es erneut.
+        </span>
+      </esp-web-install-button>
+    </div>
+
+    <p class="version">Aktuelle Version: <strong>v1.0.0</strong></p>
+
+    <details class="help">
+      <summary>Probleme?</summary>
+      <div class="help-content">
+        <p><strong>Gerät wird nicht erkannt?</strong></p>
+        <ul>
+          <li>Probiere ein anderes USB-Kabel (manche sind nur zum Laden)</li>
+          <li>Versuche einen anderen USB-Port</li>
+          <li>Unter Windows: Treiber für CP2102 oder CH340 installieren</li>
+        </ul>
+
+        <p><strong>Installation schlägt fehl?</strong></p>
+        <ul>
+          <li>Halte beim Einstecken die "Boot"-Taste am Gerät gedrückt</li>
+          <li>Trenne das Gerät und versuche es erneut</li>
+        </ul>
+      </div>
+    </details>
+  </div>
+
+  <a href="/" class="back-link">← Zurück zur Startseite</a>
+</body>
+</html>
