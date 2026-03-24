@@ -7,7 +7,8 @@ SoccerField::SoccerField() : _tft(nullptr), _playerName("SPIELER"),
                              _opponentName("CPU"), _opponentColor(TFT_WHITE),
                              _goalsScored(0), _goalsAgainst(0), _stepsForGoal(5),
                              _showLogos(false), _tournamentType(TOURNAMENT_DFB_POKAL),
-                             _playerTeamIndex(-1), _opponentTeamIndex(-1) {
+                             _playerTeamIndex(-1), _opponentTeamIndex(-1),
+                             _bgColor(TFT_BLACK) {
 }
 
 void SoccerField::setDisplay(TFT_eSPI* display) {
@@ -69,6 +70,12 @@ void SoccerField::drawField(int unused) {
   int fieldY = 60;
   int fieldHeight = 180;
 
+  // Hintergrund immer schwarz
+  _bgColor = TFT_BLACK;
+
+  // Hintergrund fuellen: Nur unterhalb der Anzeigetafel (Y=55)
+  _tft->fillRect(0, 55, 320, 185, TFT_BLACK);
+
   // Layout: Netz | Grundlinie | Spielfeld | Grundlinie | Netz
   // Netzbereiche: 0-19 (links), 301-319 (rechts)
   // Grundlinien: x=20 (links), x=300 (rechts)
@@ -78,27 +85,39 @@ void SoccerField::drawField(int unused) {
   int rightGoalLine = 300;
   int fieldWidth = rightGoalLine - leftGoalLine;  // 280px
 
-  // Netzbereiche (dunkelgrün, hinter den Toren)
-  _tft->fillRect(0, fieldY, leftGoalLine, fieldHeight, 0x1801);  // Sehr dunkel
-  _tft->fillRect(rightGoalLine, fieldY, 20, fieldHeight, 0x1801);
+  // Netzbereiche (schwarz)
+  _tft->fillRect(0, fieldY, leftGoalLine, fieldHeight, TFT_BLACK);
+  _tft->fillRect(rightGoalLine, fieldY, 20, fieldHeight, TFT_BLACK);
 
-  // Zuerst gesamtes Spielfeld mit Grundfarbe füllen
-  _tft->fillRect(leftGoalLine, fieldY, fieldWidth, fieldHeight, FIELD_GREEN);
+  // Echtes Fussball-Schachbrettmuster mit 4 Gruentoenen
+  // Horizontale + vertikale Maehstreifen ergeben 4 verschiedene Toene
+  uint16_t green1 = 0x3E85;  // Hellstes Gruen (beide Richtungen hell)
+  uint16_t green2 = 0x3665;  // Mittel-hell (horizontal hell, vertikal dunkel)
+  uint16_t green3 = 0x2E44;  // Mittel-dunkel (horizontal dunkel, vertikal hell)
+  uint16_t green4 = 0x2624;  // Dunkelstes Gruen (beide Richtungen dunkel)
 
-  // Bundesliga-Stil: 10 Streifen mit dezenterem Kontrast
-  int numStripes = 10;
-  int stripeWidth = fieldWidth / numStripes;  // 280 / 10 = 28px pro Streifen
+  int numStripesX = 10;  // Vertikale Streifen
+  int numStripesY = 6;   // Horizontale Streifen
+  int stripeWidth = fieldWidth / numStripesX;   // 280 / 10 = 28px
+  int stripeHeight = fieldHeight / numStripesY; // 180 / 6 = 30px
 
-  // Abwechselnd helle und leicht dunklere Streifen
-  for (int i = 1; i < numStripes; i += 2) {
-    _tft->fillRect(leftGoalLine + i * stripeWidth, fieldY, stripeWidth, fieldHeight, FIELD_GREEN_ALT);
-  }
+  // Schachbrett mit 4 Toenen zeichnen
+  for (int row = 0; row < numStripesY; row++) {
+    for (int col = 0; col < numStripesX; col++) {
+      int x = leftGoalLine + col * stripeWidth;
+      int y = fieldY + row * stripeHeight;
 
-  // Dezentes Karomuster: sehr feine horizontale Linien alle 12px
-  for (int y = fieldY + 6; y < fieldY + fieldHeight; y += 12) {
-    for (int x = leftGoalLine; x < rightGoalLine; x += 2) {
-      // Nur jeden zweiten Pixel für subtiles Muster
-      _tft->drawPixel(x, y, FIELD_GREEN_LINE);
+      // 4 Kombinationen: horizontal (row) und vertikal (col) jeweils hell/dunkel
+      bool hDark = (row % 2 == 1);
+      bool vDark = (col % 2 == 1);
+
+      uint16_t color;
+      if (!hDark && !vDark) color = green1;       // Beide hell
+      else if (!hDark && vDark) color = green2;   // H hell, V dunkel
+      else if (hDark && !vDark) color = green3;   // H dunkel, V hell
+      else color = green4;                         // Beide dunkel
+
+      _tft->fillRect(x, y, stripeWidth, stripeHeight, color);
     }
   }
 
@@ -159,8 +178,14 @@ void SoccerField::drawField(int unused) {
   drawGoalLeft();
   drawGoalRight();
 
-  // Zuschauer (sitzend)
+  // Zuschauer zuerst (sitzend), dann Bande darueber
   drawSpectators(false);
+
+  // Werbebande (verdeckt unteren Teil der Zuschauer)
+  drawAdvertisingBoard();
+
+  // Seitenbanden neben den Toren (vertikale Einrahmung)
+  drawSideBoards();
 }
 
 void SoccerField::drawGoalLeft() {
@@ -378,6 +403,84 @@ void SoccerField::drawScoreboard() {
 
 // ========== ZUSCHAUER ==========
 
+void SoccerField::drawAdvertisingBoard() {
+  if (!_tft) return;
+
+  int bandeY = 54;
+  int bandeH = 6;
+  int bandeStartX = 20;
+  int bandeEndX = 300;
+  int bandeWidth = bandeEndX - bandeStartX;
+
+  if (_showLogos && _tournamentType == TOURNAMENT_DFB_POKAL) {
+    // DFB-Pokal: Schwarz-Rot-Gold (deutsche Farben)
+    _tft->fillRect(bandeStartX, bandeY, bandeWidth, bandeH, TFT_BLACK);
+    int stripeW = bandeWidth / 3;
+    _tft->fillRect(bandeStartX, bandeY, stripeW, bandeH, TFT_BLACK);
+    _tft->fillRect(bandeStartX + stripeW, bandeY, stripeW, bandeH, 0xF800);  // Rot
+    _tft->fillRect(bandeStartX + stripeW * 2, bandeY, stripeW + 1, bandeH, 0xFE00);  // Gold
+
+  } else if (_showLogos && _tournamentType == TOURNAMENT_CHAMPIONS_LEAGUE) {
+    // Champions League: Dunkelblau mit Sternen
+    uint16_t clBlue = 0x000A;  // Dunkles CL-Blau
+    _tft->fillRect(bandeStartX, bandeY, bandeWidth, bandeH, clBlue);
+    // Sterne entlang der Bande
+    for (int x = bandeStartX + 15; x < bandeEndX - 10; x += 25) {
+      // Kleiner Stern (5 Punkte)
+      int cy = bandeY + bandeH / 2;
+      _tft->drawPixel(x, cy - 2, TFT_WHITE);
+      _tft->drawPixel(x - 1, cy, TFT_WHITE);
+      _tft->drawPixel(x, cy, TFT_WHITE);
+      _tft->drawPixel(x + 1, cy, TFT_WHITE);
+      _tft->drawPixel(x, cy + 1, TFT_WHITE);
+    }
+
+  } else if (_showLogos && _tournamentType == TOURNAMENT_WORLD_CUP_2026) {
+    // WM 2026: Tuerkis/Magenta/Orange (offizielle WM-Farben)
+    _tft->fillRect(bandeStartX, bandeY, bandeWidth, bandeH, TFT_BLACK);
+    uint16_t wmColors[] = {
+      0x07F0,  // Tuerkis
+      0xF81F,  // Magenta
+      0xFD20,  // Orange
+      0x07F0,  // Tuerkis
+      0xF81F,  // Magenta
+    };
+    int numColors = 5;
+    int stripeW = bandeWidth / numColors;
+    for (int i = 0; i < numColors; i++) {
+      int x = bandeStartX + i * stripeW;
+      int w = (i == numColors - 1) ? (bandeEndX - x) : stripeW;
+      _tft->fillRect(x, bandeY, w, bandeH, wmColors[i]);
+    }
+
+  } else {
+    // Standard: Schwarze Bande mit diagonalem Regenbogenmuster
+    _tft->fillRect(bandeStartX, bandeY, bandeWidth, bandeH, TFT_BLACK);
+
+    uint16_t rainbow[] = {
+      0xF800, 0xFC00, 0xFFE0, 0x07E0, 0x07FF, 0x001F, 0xF81F
+    };
+    int numColors = 7;
+    int stripeWidth = 8;
+
+    for (int x = bandeStartX; x < bandeEndX + bandeH; x += stripeWidth * numColors) {
+      for (int c = 0; c < numColors; c++) {
+        int startX = x + c * stripeWidth;
+        for (int dy = 0; dy < bandeH; dy++) {
+          int px = startX + dy;
+          if (px >= bandeStartX && px < bandeEndX) {
+            _tft->drawFastHLine(px, bandeY + dy, stripeWidth - 1, rainbow[c]);
+          }
+        }
+      }
+    }
+  }
+}
+
+void SoccerField::drawSideBoards() {
+  // Seitenbanden deaktiviert
+}
+
 void SoccerField::drawSpectators(bool standing) {
   if (!_tft) return;
 
@@ -385,21 +488,22 @@ void SoccerField::drawSpectators(bool standing) {
   uint16_t colors[] = {TFT_RED, TFT_BLUE, TFT_YELLOW, TFT_GREEN, TFT_WHITE, TFT_CYAN, TFT_MAGENTA};
   int numColors = 7;
 
-  // Obere Zuschauer-Reihe (oberhalb des Spielfelds) - dichter gepackt
+  // Obere Zuschauer-Reihe (hinter der Werbebande bei Y=54)
+  // Zuschauer sitzen so, dass die Bande ihren unteren Teil verdeckt
   for (int i = 0; i < 21; i++) {
     int x = 22 + i * 14;
     uint16_t color = colors[i % numColors];
     int yOffset = standing ? -3 : 0;
 
-    // Kopf
-    _tft->fillCircle(x, 56 + yOffset, 3, 0xFE60);
-    // Körper
-    _tft->fillRect(x - 3, 60 + yOffset, 6, 6, color);
+    // Kopf (Bande verdeckt unteren Teil des Koerpers)
+    _tft->fillCircle(x, 46 + yOffset, 3, 0xFE60);
+    // Körper (geht bis Y=58, wird von Bande bei Y=54 teilweise verdeckt)
+    _tft->fillRect(x - 3, 50 + yOffset, 6, 8, color);
 
     // Arme hoch wenn stehend
     if (standing) {
-      _tft->drawLine(x - 3, 61 + yOffset, x - 5, 56 + yOffset, color);
-      _tft->drawLine(x + 3, 61 + yOffset, x + 5, 56 + yOffset, color);
+      _tft->drawLine(x - 3, 51 + yOffset, x - 5, 46 + yOffset, color);
+      _tft->drawLine(x + 3, 51 + yOffset, x + 5, 46 + yOffset, color);
     }
   }
 
@@ -491,8 +595,8 @@ void SoccerField::drawJubilatingSpectators(int frame) {
   uint16_t colors[] = {TFT_RED, TFT_BLUE, TFT_YELLOW, TFT_GREEN, TFT_WHITE, TFT_CYAN, TFT_MAGENTA};
   int numColors = 7;
 
-  // Obere Zuschauer-Reihe - jubeln abwechselnd (dichter gepackt)
-  int topY = 58;
+  // Obere Zuschauer-Reihe - jubeln abwechselnd (hinter Werbebande bei Y=54)
+  int topY = 48;
   for (int i = 0; i < 21; i++) {
     int x = 22 + i * 14;
     uint16_t color = colors[i % numColors];
@@ -501,20 +605,23 @@ void SoccerField::drawJubilatingSpectators(int frame) {
     bool jumping = ((i + frame) % 2 == 0);
     int yOffset = jumping ? -4 : 0;
 
-    // Erst Bereich löschen
-    _tft->fillRect(x - 4, topY - 14, 10, 18, TFT_BLACK);
+    // Erst Bereich löschen (oberhalb der Werbebande - SCHWARZ wegen Anzeigetafel)
+    _tft->fillRect(x - 4, topY - 10, 10, 12, TFT_BLACK);
 
     // Kopf
-    _tft->fillCircle(x, topY - 6 + yOffset, 3, 0xFE60);
-    // Körper
-    _tft->fillRect(x - 3, topY - 2 + yOffset, 6, 8, color);
+    _tft->fillCircle(x, topY - 2 + yOffset, 3, 0xFE60);
+    // Körper (geht bis zur Bande, wird teilweise verdeckt)
+    _tft->fillRect(x - 3, topY + 2 + yOffset, 6, 8, color);
 
     // Arme hoch wenn jubelt
     if (jumping) {
-      _tft->drawLine(x - 3, topY - 1 + yOffset, x - 5, topY - 6 + yOffset, color);  // Linker Arm
-      _tft->drawLine(x + 3, topY - 1 + yOffset, x + 5, topY - 6 + yOffset, color);  // Rechter Arm
+      _tft->drawLine(x - 3, topY + 3 + yOffset, x - 5, topY - 2 + yOffset, color);
+      _tft->drawLine(x + 3, topY + 3 + yOffset, x + 5, topY - 2 + yOffset, color);
     }
   }
+
+  // Werbebande neu zeichnen (verdeckt unteren Teil der Zuschauer)
+  drawAdvertisingBoard();
 
   // Untere Zuschauer-Reihe - jubeln abwechselnd (gegenläufig, dichter gepackt)
   int bottomY = 232;
@@ -526,8 +633,8 @@ void SoccerField::drawJubilatingSpectators(int frame) {
     bool jumping = ((i + frame + 1) % 2 == 0);
     int yOffset = jumping ? -4 : 0;
 
-    // Erst Bereich löschen
-    _tft->fillRect(x - 4, bottomY + 2, 10, 20, TFT_BLACK);
+    // Erst Bereich löschen (mit Hintergrundfarbe)
+    _tft->fillRect(x - 4, bottomY + 2, 10, 20, _bgColor);
 
     // Kopf
     _tft->fillCircle(x, bottomY + 6 + yOffset, 3, 0xFE60);
@@ -567,31 +674,48 @@ void SoccerField::showGoalAnimation(int fromPosition) {
   int ballStartY = 162;
   int goalY = 150;
 
-  // Spieler in Schusspose (ohne Ball)
+  // Spieler in Schusspose (ohne Ball) - Szene einmal aufbauen
   drawField(0);
   drawSpectators(true);  // Zuschauer stehen!
   drawGoalkeeper();
   drawPlayer(shootPos, false);
 
-  // Ball fliegt zum Tor (Pfosten bei x=300, Netz dahinter)
-  for (int bx = ballStartX; bx <= 310; bx += 12) {
+  // Ball fliegt zum Tor mit elegantem Regenbogen-Schweif
+  // Regenbogen-Farben (sanfter Verlauf)
+  uint16_t rainbow[] = {0xF800, 0xFBE0, 0xFFE0, 0x07E0, 0x07FF, 0x001F, 0xF81F};
+  int numColors = 7;
+
+  int prevBx = ballStartX;
+  int prevBy = ballStartY;
+
+  for (int bx = ballStartX; bx <= 310; bx += 8) {
     // Ball-Flugbahn leicht nach oben gebogen
     int by = ballStartY - ((bx - ballStartX) / 8);
     if (by < goalY - 20) by = goalY - 20;
 
-    drawField(0);
-    drawSpectators(true);  // Zuschauer stehen!
-    drawGoalkeeper();
-    drawPlayer(shootPos, false);
+    // Schweif als fliessende Linien zeichnen (von alter zu neuer Position)
+    if (prevBx > 0 && bx < 305) {
+      // Mehrere parallele Linien fuer dicken, farbigen Schweif
+      for (int offset = -3; offset <= 3; offset++) {
+        int colorIdx = (offset + 3) % numColors;
+        _tft->drawLine(prevBx - 5, prevBy + offset, bx - 3, by + offset, rainbow[colorIdx]);
+      }
+    }
+
+    // Torwart ggf. neu zeichnen
+    if (bx >= 265 && bx <= 295) {
+      drawGoalkeeper();
+    }
+
+    // Ball zeichnen (weiss gefuellt)
     _tft->fillCircle(bx, by, 5, TFT_WHITE);
-    _tft->drawCircle(bx, by, 5, TFT_BLACK);
-    delay(40);
+
+    prevBx = bx;
+    prevBy = by;
+    delay(25);
   }
 
-  // Ball im Netz (hinter dem Pfosten bei x=300)
-  drawField(0);
-  drawSpectators(true);  // Zuschauer stehen!
-  drawPlayer(shootPos, false);
+  // Schweif bleibt sichtbar - wird beim TOOOOR-Jubel mit neuem Spielfeld uebermalt
   _tft->fillCircle(310, goalY, 5, TFT_WHITE);
   _tft->drawCircle(310, goalY, 5, TFT_BLACK);
 
@@ -611,25 +735,48 @@ void SoccerField::showGoalAnimation(int fromPosition) {
 void SoccerField::showCounterGoalAnimation(int num1, char operation, int num2, int result) {
   if (!_tft) return;
 
-  // Spielfeld zeichnen
+  // Spielfeld einmal zeichnen
   drawField(0);
   drawGoalkeeper();
   drawPlayer(0, false);
 
-  // Ball fliegt von rechts nach links ins eigene Tor (Pfosten bei x=20)
-  for (int bx = 250; bx >= 10; bx -= 15) {
-    drawField(0);
-    drawGoalkeeper();
-    drawPlayer(0, false);
-    _tft->fillCircle(bx, 150, 5, TFT_WHITE);
-    _tft->drawCircle(bx, 150, 5, TFT_BLACK);
-    delay(40);
+  // Ball fliegt von rechts nach links ins eigene Tor mit Regenbogen-Schweif
+  // Regenbogen-Farben (sanfter Verlauf) - wie beim Tor
+  uint16_t rainbow[] = {0xF800, 0xFBE0, 0xFFE0, 0x07E0, 0x07FF, 0x001F, 0xF81F};
+  int numColors = 7;
+
+  int ballStartX = 280;
+  int ballStartY = 150;
+  int goalY = 150;
+
+  int prevBx = ballStartX;
+  int prevBy = ballStartY;
+
+  for (int bx = ballStartX; bx >= 10; bx -= 8) {
+    // Ball-Flugbahn leicht nach oben gebogen
+    int by = ballStartY - ((ballStartX - bx) / 12);
+    if (by < goalY - 15) by = goalY - 15;
+
+    // Schweif als fliessende Linien zeichnen (von alter zu neuer Position)
+    if (prevBx < 280 && bx > 15) {
+      // Mehrere parallele Linien fuer dicken, farbigen Schweif
+      for (int offset = -3; offset <= 3; offset++) {
+        int colorIdx = (offset + 3) % numColors;
+        _tft->drawLine(prevBx + 5, prevBy + offset, bx + 3, by + offset, rainbow[colorIdx]);
+      }
+    }
+
+    // Ball zeichnen (weiss gefuellt)
+    _tft->fillCircle(bx, by, 5, TFT_WHITE);
+
+    prevBx = bx;
+    prevBy = by;
+    delay(25);
   }
 
-  // Ball im linken Tor (hinter dem Pfosten bei x=20)
-  drawField(0);
-  drawPlayer(0, false);
-  _tft->fillCircle(10, 150, 5, TFT_WHITE);
+  // Ball im linken Tor
+  _tft->fillCircle(10, goalY - 5, 5, TFT_WHITE);
+  _tft->drawCircle(10, goalY - 5, 5, TFT_BLACK);
 
   // GEGENTOR Text
   _tft->setTextColor(TFT_RED, TFT_BLACK);
@@ -779,6 +926,196 @@ void SoccerField::showGameOver(int goalsScored, int goalsAgainst) {
   _tft->setTextSize(1);
   _tft->setCursor(90, 210);
   _tft->print("< druecken fuer Menue");
+}
+
+void SoccerField::showChampionCelebration() {
+  if (!_tft) return;
+
+  // Spielfeld einmal aufbauen
+  drawField(0);
+
+  // Zuschauer-Farben (bunt gemischt)
+  uint16_t colors[] = {TFT_RED, TFT_BLUE, TFT_YELLOW, TFT_GREEN, TFT_WHITE, TFT_CYAN, TFT_MAGENTA};
+  int numColors = 7;
+
+  // Spieler laeuft jubelnd ueber das Feld (von links nach rechts und zurueck)
+  int fieldStartX = 30;
+  int fieldEndX = 270;
+  int playerY = 140;
+
+  // 2 Runden ueber das Feld
+  for (int lap = 0; lap < 2; lap++) {
+    // Hin (links nach rechts)
+    for (int x = fieldStartX; x <= fieldEndX; x += 8) {
+      int frame = (x / 8) % 2;
+
+      // Zuschauer-Bereiche loeschen und neu zeichnen (jubelnde Animation)
+      // Obere Reihe (SCHWARZ wegen Anzeigetafel)
+      for (int i = 0; i < 21; i++) {
+        int sx = 22 + i * 14;
+        bool jumping = ((i + frame) % 2 == 0);
+        int yOffset = jumping ? -4 : 0;
+
+        // Bereich loeschen (schwarz wegen Anzeigetafel)
+        _tft->fillRect(sx - 4, 38, 10, 22, TFT_BLACK);
+
+        // Kopf und Koerper
+        uint16_t color = colors[i % numColors];
+        _tft->fillCircle(sx, 46 + yOffset, 3, 0xFE60);
+        _tft->fillRect(sx - 3, 50 + yOffset, 6, 8, color);
+
+        // Arme hoch
+        if (jumping) {
+          _tft->drawLine(sx - 3, 51 + yOffset, sx - 5, 46 + yOffset, color);
+          _tft->drawLine(sx + 3, 51 + yOffset, sx + 5, 46 + yOffset, color);
+        }
+      }
+
+      // Werbebande neu zeichnen
+      drawAdvertisingBoard();
+
+      // Untere Reihe
+      for (int i = 0; i < 21; i++) {
+        int sx = 22 + i * 14;
+        bool jumping = ((i + frame + 1) % 2 == 0);
+        int yOffset = jumping ? -4 : 0;
+
+        // Bereich loeschen
+        _tft->fillRect(sx - 4, 232, 10, 20, _bgColor);
+
+        // Kopf und Koerper
+        uint16_t color = colors[(i + 3) % numColors];
+        _tft->fillCircle(sx, 238 + yOffset, 3, 0xFE60);
+        _tft->fillRect(sx - 3, 242 + yOffset, 6, 8, color);
+
+        // Arme hoch
+        if (jumping) {
+          _tft->drawLine(sx - 3, 243 + yOffset, sx - 5, 238 + yOffset, color);
+          _tft->drawLine(sx + 3, 243 + yOffset, sx + 5, 238 + yOffset, color);
+        }
+      }
+
+      // Alten Spieler loeschen (grosszuegiger Bereich)
+      if (x > fieldStartX) {
+        _tft->fillRect(x - 16, playerY - 10, 35, 40, FIELD_GREEN);
+      }
+
+      // Jubelnden Spieler zeichnen (Arme hoch, Beine laufend)
+      int legFrame = frame;
+
+      // Koerper (Trikot)
+      _tft->fillRect(x, playerY, 10, 16, _playerTeamColor);
+      // Kopf
+      _tft->fillCircle(x + 5, playerY - 4, 5, 0xFE60);
+
+      // Arme HOCH jubelnd (beide nach oben)
+      _tft->fillRect(x - 2, playerY - 2, 4, 8, _playerTeamColor);    // Linker Arm hoch
+      _tft->fillCircle(x - 2, playerY - 5, 3, 0xFE60);               // Linke Faust
+      _tft->fillRect(x + 8, playerY - 2, 4, 8, _playerTeamColor);    // Rechter Arm hoch
+      _tft->fillCircle(x + 12, playerY - 5, 3, 0xFE60);              // Rechte Faust
+
+      // Laufende Beine
+      if (legFrame == 0) {
+        _tft->fillRect(x + 1, playerY + 16, 3, 7, TFT_BLACK);
+        _tft->fillRect(x + 6, playerY + 16, 3, 7, TFT_BLACK);
+      } else {
+        _tft->fillRect(x - 1, playerY + 16, 3, 7, TFT_BLACK);
+        _tft->fillRect(x + 8, playerY + 16, 3, 7, TFT_BLACK);
+      }
+
+      delay(40);
+    }
+
+    // Zurueck (rechts nach links) - gleiche Animation, nur rueckwaerts
+    for (int x = fieldEndX; x >= fieldStartX; x -= 8) {
+      int frame = (x / 8) % 2;
+
+      // Zuschauer oben (SCHWARZ wegen Anzeigetafel)
+      for (int i = 0; i < 21; i++) {
+        int sx = 22 + i * 14;
+        bool jumping = ((i + frame) % 2 == 0);
+        int yOffset = jumping ? -4 : 0;
+
+        _tft->fillRect(sx - 4, 38, 10, 22, TFT_BLACK);
+
+        uint16_t color = colors[i % numColors];
+        _tft->fillCircle(sx, 46 + yOffset, 3, 0xFE60);
+        _tft->fillRect(sx - 3, 50 + yOffset, 6, 8, color);
+
+        if (jumping) {
+          _tft->drawLine(sx - 3, 51 + yOffset, sx - 5, 46 + yOffset, color);
+          _tft->drawLine(sx + 3, 51 + yOffset, sx + 5, 46 + yOffset, color);
+        }
+      }
+
+      drawAdvertisingBoard();
+
+      // Zuschauer unten
+      for (int i = 0; i < 21; i++) {
+        int sx = 22 + i * 14;
+        bool jumping = ((i + frame + 1) % 2 == 0);
+        int yOffset = jumping ? -4 : 0;
+
+        _tft->fillRect(sx - 4, 232, 10, 20, _bgColor);
+
+        uint16_t color = colors[(i + 3) % numColors];
+        _tft->fillCircle(sx, 238 + yOffset, 3, 0xFE60);
+        _tft->fillRect(sx - 3, 242 + yOffset, 6, 8, color);
+
+        if (jumping) {
+          _tft->drawLine(sx - 3, 243 + yOffset, sx - 5, 238 + yOffset, color);
+          _tft->drawLine(sx + 3, 243 + yOffset, sx + 5, 238 + yOffset, color);
+        }
+      }
+
+      // Alten Spieler loeschen
+      if (x < fieldEndX) {
+        _tft->fillRect(x - 4, playerY - 10, 35, 40, FIELD_GREEN);
+      }
+
+      // Jubelnden Spieler (nach links schauend)
+      int legFrame = frame;
+
+      _tft->fillRect(x, playerY, 10, 16, _playerTeamColor);
+      _tft->fillCircle(x + 5, playerY - 4, 5, 0xFE60);
+
+      // Arme hoch
+      _tft->fillRect(x - 2, playerY - 2, 4, 8, _playerTeamColor);
+      _tft->fillCircle(x - 2, playerY - 5, 3, 0xFE60);
+      _tft->fillRect(x + 8, playerY - 2, 4, 8, _playerTeamColor);
+      _tft->fillCircle(x + 12, playerY - 5, 3, 0xFE60);
+
+      if (legFrame == 0) {
+        _tft->fillRect(x + 1, playerY + 16, 3, 7, TFT_BLACK);
+        _tft->fillRect(x + 6, playerY + 16, 3, 7, TFT_BLACK);
+      } else {
+        _tft->fillRect(x - 1, playerY + 16, 3, 7, TFT_BLACK);
+        _tft->fillRect(x + 8, playerY + 16, 3, 7, TFT_BLACK);
+      }
+
+      delay(40);
+    }
+  }
+
+  // Spieler bleibt in der Mitte stehen und jubelt
+  int centerX = 150;
+  _tft->fillRect(centerX - 10, playerY - 10, 40, 40, FIELD_GREEN);
+
+  // Finale Pose: Spieler mit erhobenen Armen in der Mitte
+  _tft->fillRect(centerX, playerY, 10, 16, _playerTeamColor);
+  _tft->fillCircle(centerX + 5, playerY - 4, 5, 0xFE60);
+  _tft->fillRect(centerX - 2, playerY - 2, 4, 8, _playerTeamColor);
+  _tft->fillCircle(centerX - 2, playerY - 5, 3, 0xFE60);
+  _tft->fillRect(centerX + 8, playerY - 2, 4, 8, _playerTeamColor);
+  _tft->fillCircle(centerX + 12, playerY - 5, 3, 0xFE60);
+  _tft->fillRect(centerX + 2, playerY + 16, 3, 7, TFT_BLACK);
+  _tft->fillRect(centerX + 5, playerY + 16, 3, 7, TFT_BLACK);
+
+  // Noch ein paar Frames Jubel zum Abschluss
+  for (int f = 0; f < 8; f++) {
+    drawJubilatingSpectators(f);
+    delay(200);
+  }
 }
 
 void SoccerField::showPenaltyResult(bool playerScored, bool cpuScored,

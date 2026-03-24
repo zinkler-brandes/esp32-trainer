@@ -24,20 +24,31 @@ bool Touch::isTouched() {
 }
 
 void Touch::getCoordinates(int16_t &x, int16_t &y) {
-  TouchPoint tp = ts->getTouch();
+  // Mehrere Messungen fuer Stabilitaet
+  int sumX = 0, sumY = 0;
+  int validCount = 0;
 
-  // Kein Touch erkannt
-  if (tp.zRaw == 0) {
+  for (int i = 0; i < 3; i++) {
+    TouchPoint tp = ts->getTouch();
+    if (tp.zRaw > 0 && tp.x >= 0 && tp.x <= 320 && tp.y >= 0 && tp.y <= 240) {
+      sumX += tp.x;
+      sumY += tp.y;
+      validCount++;
+    }
+    delayMicroseconds(500);
+  }
+
+  if (validCount == 0) {
     x = -1;
     y = -1;
     return;
   }
 
-  // Die Library liefert bereits kalibrierte Werte
-  x = tp.x;
-  y = tp.y;
+  // Durchschnitt berechnen
+  x = sumX / validCount;
+  y = sumY / validCount;
 
   // Koordinaten begrenzen
-  x = constrain(x, 0, 320);
-  y = constrain(y, 0, 240);
+  x = constrain(x, 0, 319);
+  y = constrain(y, 0, 239);
 }

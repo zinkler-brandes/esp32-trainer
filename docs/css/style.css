@@ -411,7 +411,7 @@ p {
 }
 
 .screenshot-placeholder {
-  aspect-ratio: 3/4;
+  aspect-ratio: 4/3;
   background: var(--dark);
   border: 2px solid var(--rainbow-purple);
   border-radius: var(--radius-sm);
@@ -567,6 +567,74 @@ p {
   margin-top: var(--space-md);
   font-size: 1.5rem;
   color: var(--rainbow-green);
+}
+
+/* ============================================
+   POWER / STROMVERSORGUNG
+   ============================================ */
+
+.power-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.power-option {
+  background: var(--dark);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  text-align: center;
+  border: 1px solid #222;
+  transition: all 0.2s ease;
+}
+
+.power-option:hover {
+  border-color: var(--rainbow-yellow);
+  transform: translateY(-2px);
+}
+
+.power-icon {
+  font-size: 2.5rem;
+  margin-bottom: var(--space-sm);
+}
+
+.power-option h3 {
+  color: var(--rainbow-yellow);
+  margin-bottom: 0.5rem;
+}
+
+.power-option p {
+  color: var(--gray);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.cable-info {
+  background: linear-gradient(135deg, rgba(255,200,0,0.1) 0%, rgba(255,150,0,0.1) 100%);
+  border: 1px solid var(--rainbow-orange);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.cable-info p {
+  color: var(--white);
+  margin-bottom: var(--space-sm);
+}
+
+.cable-info ul {
+  list-style: none;
+  color: var(--gray);
+}
+
+.cable-info li {
+  padding: 0.25rem 0;
+}
+
+.cable-info li strong {
+  color: var(--rainbow-cyan);
 }
 
 /* ============================================

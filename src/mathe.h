@@ -31,6 +31,7 @@ class Mathe {
     bool isPenaltyAnswered() { return _penaltyAnswered; }
     bool wasPenaltyCorrect() { return _penaltyCorrect; }
     void showPenaltyResult(bool playerScored, bool cpuScored, int playerTotal, int cpuTotal, int round);
+    void showChampionCelebration();  // Jubel-Animation bei Turniersieg
     void updateTimerDisplay();       // Spielzeit-Timer neu zeichnen
     void updateAnswerTimerDisplay(); // Antwort-Timer neu zeichnen
     void handleAnswerTimeout();      // Timeout = Gegentor
@@ -77,8 +78,14 @@ class Mathe {
     bool _penaltyAnswered;
     bool _penaltyCorrect;
 
+    // Aufgaben-History (gegen Wiederholungen)
+    static const int TASK_HISTORY_SIZE = 8;
+    int _taskHistory[TASK_HISTORY_SIZE];  // Speichert num1*11+num2 fuer 1x1
+    int _taskHistoryIdx;
+
     // Methoden
     void generateTask();
+    bool isTaskInHistory(int taskKey);
     void updateDisplay();
     void addDigit(String digit);
     void backspace();

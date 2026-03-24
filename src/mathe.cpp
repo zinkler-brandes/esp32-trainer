@@ -82,6 +82,12 @@ Mathe::Mathe() {
   // Exit-Button (rechts oben, rotes X zum Abbrechen)
   exitButton = new Button(295, 2, 22, 18, "X");
   exitButton->setColors(TFT_RED, TFT_WHITE);
+
+  // Aufgaben-History initialisieren
+  for (int i = 0; i < TASK_HISTORY_SIZE; i++) {
+    _taskHistory[i] = -1;
+  }
+  _taskHistoryIdx = 0;
 }
 
 void Mathe::init(MatheMode mode, unsigned long durationMs, unsigned long answerTimeMs, int stepsForGoal, int nachspielzeitSek) {
@@ -363,10 +369,32 @@ void Mathe::generateTask() {
     _result = a;
   } else {
     _operation = '*';
-    _num1 = random(1, 11);
-    _num2 = random(1, 11);
+
+    // Multiplikation mit History gegen Wiederholungen
+    int attempts = 0;
+    int taskKey;
+    do {
+      _num1 = random(1, 11);
+      _num2 = random(1, 11);
+      taskKey = _num1 * 11 + _num2;  // Eindeutiger Key fuer diese Kombination
+      attempts++;
+    } while (attempts < 20 && isTaskInHistory(taskKey));
+
+    // In History speichern
+    _taskHistory[_taskHistoryIdx] = taskKey;
+    _taskHistoryIdx = (_taskHistoryIdx + 1) % TASK_HISTORY_SIZE;
+
     _result = _num1 * _num2;
   }
+}
+
+bool Mathe::isTaskInHistory(int taskKey) {
+  for (int i = 0; i < TASK_HISTORY_SIZE; i++) {
+    if (_taskHistory[i] == taskKey) {
+      return true;
+    }
+  }
+  return false;
 }
 
 void Mathe::updateDisplay() {
@@ -520,6 +548,10 @@ void Mathe::showGameOver() {
 
 void Mathe::showPenaltyResult(bool playerScored, bool cpuScored, int playerTotal, int cpuTotal, int round) {
   _soccerField.showPenaltyResult(playerScored, cpuScored, playerTotal, cpuTotal, round);
+}
+
+void Mathe::showChampionCelebration() {
+  _soccerField.showChampionCelebration();
 }
 
 void Mathe::redrawScreen() {

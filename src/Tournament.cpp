@@ -86,7 +86,9 @@ int Tournament::handleTouch(int16_t x, int16_t y) {
 
     case TOURNAMENT_ROUND_WON:
       if (continueButton->contains(x, y)) {
-        advanceToNextRound();
+        // Runde und Gegner wurden bereits in createSaveForNextRound() gesetzt
+        // Nur noch State auf INTRO setzen
+        _state = TOURNAMENT_INTRO;
         draw();
         return -1;
       }
@@ -327,23 +329,23 @@ void Tournament::drawRoundWon() {
   tft.setCursor(30, 40);
   tft.print("GEWONNEN!");
 
-  // Gegen wen
+  // Gegen wen (besiegter Gegner)
   tft.setTextSize(2);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
   tft.setCursor(30, 90);
-  tft.printf("gegen %s", _currentOpponent.name);
+  tft.printf("gegen %s", _defeatedOpponent.name ? _defeatedOpponent.name : _currentOpponent.name);
 
-  // Nächste Runde Info
+  // Nächste Runde Info (aktuelle Runde ist bereits die naechste)
   tft.setTextSize(2);
   tft.setTextColor(TFT_YELLOW, TFT_BLACK);
   tft.setCursor(30, 130);
-  if (_currentRound + 1 < getTotalRounds()) {
+  if (_currentRound < getTotalRounds()) {
     tft.print("Naechste Runde:");
     tft.setCursor(30, 155);
     if (_tournamentType == TOURNAMENT_DFB_POKAL) {
-      tft.print(DFB_ROUND_NAMES[_currentRound + 1]);
+      tft.print(DFB_ROUND_NAMES[_currentRound]);
     } else {
-      tft.print(CL_ROUND_NAMES[_currentRound + 1]);
+      tft.print(CL_ROUND_NAMES[_currentRound]);
     }
   }
 
@@ -465,6 +467,29 @@ TournamentSave Tournament::createSave() {
   save.opponentName = _currentOpponent.name;
   save.opponentAbbrev = _currentOpponent.abbrev;
   save.opponentColor = _currentOpponent.primaryColor;
+  return save;
+}
+
+TournamentSave Tournament::createSaveForNextRound() {
+  // Besiegten Gegner und Runde fuer Anzeige speichern
+  _defeatedOpponent = _currentOpponent;
+  _wonRound = _currentRound;
+
+  // Zur naechsten Runde wechseln
+  _currentRound++;
+  selectOpponent();  // Waehlt Gegner fuer naechste Runde
+
+  // Save mit neuer Runde erstellen
+  TournamentSave save;
+  save.type = _tournamentType;
+  save.mode = _matheMode;
+  save.round = _currentRound;
+  save.opponentName = _currentOpponent.name;
+  save.opponentAbbrev = _currentOpponent.abbrev;
+  save.opponentColor = _currentOpponent.primaryColor;
+
+  // State bleibt TOURNAMENT_ROUND_WON fuer die Anzeige
+
   return save;
 }
 

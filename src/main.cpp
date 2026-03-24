@@ -29,6 +29,14 @@
 #include "KennzeichenQuiz.h"
 #include "InfoScreen.h"
 #include "SplashScreen.h"
+#include "ThemeSelectScreen.h"
+#include "ReitMenu.h"
+#include "KiTaMenu.h"
+#include "ParcoursMenu.h"
+#include "ReitabzeichenMenu.h"
+#include "SpringreitenTrainer.h"
+#include "ParcoursField.h"
+#include "ReitIntro.h"
 
 // Modi
 enum AppMode {
@@ -74,7 +82,23 @@ enum AppMode {
   MODE_FLAG_QUIZ,                  // WM Flaggen-Quiz
   MODE_CLUB_QUIZ,                  // Vereinsquiz (Bundesland raten)
   MODE_STADION_QUIZ,               // Stadion-Quiz
-  MODE_KENNZEICHEN_QUIZ            // Kennzeichen-Quiz
+  MODE_KENNZEICHEN_QUIZ,           // Kennzeichen-Quiz
+  // Thema-Modi
+  MODE_THEME_SELECT,               // Themenauswahl (Fussball/KiTa/Reiten)
+  MODE_KITA_MENU,                  // KiTa-Hauptmenue
+  // Reiten-Modi
+  MODE_REIT_MENU,                  // Reit-Hauptmenue
+  MODE_PARCOURS_MENU,              // Rechenart-Auswahl fuer Parcours
+  MODE_REITABZEICHEN_SELECTION,    // Schwierigkeit (Bronze/Silber/Gold)
+  MODE_REIT_TIME_SELECTION,        // Zeitauswahl Parcours
+  MODE_SPRINGREITEN,               // Springreiten laeuft
+  MODE_REIT_TOURNAMENT_SELECTION,  // Turnier-Auswahl
+  MODE_REIT_TOURNAMENT_CONTINUE,   // Turnier fortsetzen Dialog
+  MODE_REIT_TOURNAMENT_INTRO,      // Turnier-Intro
+  MODE_REIT_TOURNAMENT,            // Turnier-Spiel laeuft
+  MODE_STECHEN,                    // Stechen (wie Elfmeterschiessen)
+  MODE_REIT_TROPHY,                // Pokal-Anzeige
+  MODE_REIT_RECORDS                // Reit-Rekorde
 };
 
 // Globale Objekte
@@ -100,6 +124,16 @@ StadionQuiz stadionQuiz;
 KennzeichenQuiz kennzeichenQuiz;
 InfoScreen infoScreen;
 SplashScreen splashScreen;
+ThemeSelectScreen themeSelectScreen;
+ReitMenu reitMenu;
+KiTaMenu kitaMenu;
+ParcoursMenu parcoursMenu;
+ReitabzeichenMenu reitabzeichenMenu;
+SpringreitenTrainer springreitenTrainer;
+ReitIntro reitIntro;
+
+// Gewaehlte Reit-Optionen
+Reitabzeichen selectedReitabzeichen;
 
 // Profil-System
 SDManager sdManager;
@@ -132,6 +166,9 @@ int profileToDelete = 0;
 // Modus vor Exit-Bestätigung (um zu wissen ob Turnier oder Einzelspiel)
 AppMode modeBeforeExit = MODE_MENU;
 
+// Aktuelles Thema (Fussball oder Reiten)
+Theme currentTheme = THEME_FUSSBALL;
+
 // Setter für Profilname und Gegner in mathe.cpp
 extern void setPlayerName(const String& name);
 extern void setPlayerTeamColor(uint16_t color);
@@ -150,12 +187,18 @@ void showKeyboard() {
   currentMode = MODE_PROFILE_CREATE;
 }
 
+void showThemeSelect() {
+  themeSelectScreen.setPlayerName(currentProfile.name);
+  themeSelectScreen.draw();
+  currentMode = MODE_THEME_SELECT;
+}
+
 void loginProfile(const Profile& profile) {
   currentProfile = profile;
   setPlayerName(currentProfile.name);
   menu.setPlayerName(currentProfile.name);
-  menu.draw();
-  currentMode = MODE_MENU;
+  reitMenu.setPlayerName(currentProfile.name);
+  showThemeSelect();
   Serial.printf("Logged in as: %s (id=%d)\n", currentProfile.name.c_str(), currentProfile.id);
 }
 
@@ -173,6 +216,13 @@ void setup() {
   confirmDialog.init();
   tournamentContinueDialog.init();
   tournamentIntro.init();
+
+  // Neue Screens initialisieren
+  themeSelectScreen.init();
+  reitMenu.init();
+  kitaMenu.init();
+  parcoursMenu.init();
+  reitabzeichenMenu.init();
 
   // Splash Screen zeigen
   splashScreen.init();
@@ -227,6 +277,12 @@ void loop() {
        currentMode == MODE_WM_PLAYING || currentMode == MODE_WM_PENALTY) && millis() - lastTimerUpdate > 500) {
     lastTimerUpdate = millis();
     matheTrainer.update();
+  }
+
+  // Timer fuer Springreiten-Trainer pruefen
+  if ((currentMode == MODE_SPRINGREITEN || currentMode == MODE_STECHEN) && millis() - lastTimerUpdate > 500) {
+    lastTimerUpdate = millis();
+    springreitenTrainer.update();
   }
 
   if (touch.isTouched()) {
@@ -371,6 +427,11 @@ void loop() {
                   tournamentMenu.init();
                   tournamentMenu.draw();
                   currentMode = MODE_TOURNAMENT_SELECTION;
+                } else if (modeBeforeExit == MODE_SPRINGREITEN) {
+                  // Springreiten abbrechen -> zurueck zum Reit-Menue
+                  Serial.println("Springreiten exit confirmed");
+                  reitMenu.draw();
+                  currentMode = MODE_REIT_MENU;
                 } else {
                   // Einzelspiel abbrechen -> zurueck zum Menue
                   Serial.println("Game exit confirmed");
@@ -379,29 +440,181 @@ void loop() {
                 }
               } else if (choice == 2) {
                 // Nein - zurueck zum Spiel
-                matheTrainer.redrawScreen();
+                if (modeBeforeExit == MODE_SPRINGREITEN) {
+                  springreitenTrainer.redrawScreen();
+                } else {
+                  matheTrainer.redrawScreen();
+                }
                 currentMode = modeBeforeExit;
               }
             }
             break;
 
-          // ========== HAUPTMENÜ ==========
+          // ========== THEMENAUSWAHL ==========
+
+          case MODE_THEME_SELECT:
+            {
+              int choice = themeSelectScreen.handleTouch(x, y);
+              if (choice == 0) {
+                // Zurueck zur Profilauswahl
+                Serial.println("Returning to profile selection from theme select");
+                showProfileSelect();
+              } else if (choice == 1) {
+                // Fussball gewaehlt
+                Serial.println("Theme: Fussball");
+                currentTheme = THEME_FUSSBALL;
+                menu.draw();
+                currentMode = MODE_MENU;
+              } else if (choice == 2) {
+                // KiTa gewaehlt
+                Serial.println("Theme: KiTa");
+                currentTheme = THEME_KITA;
+                kitaMenu.setPlayerName(currentProfile.name);
+                kitaMenu.draw();
+                currentMode = MODE_KITA_MENU;
+              } else if (choice == 3) {
+                // Reiten gewaehlt
+                Serial.println("Theme: Reiten");
+                currentTheme = THEME_REITEN;
+                reitMenu.draw();
+                currentMode = MODE_REIT_MENU;
+              }
+            }
+            break;
+
+          // ========== KITA-MENÜ ==========
+
+          case MODE_KITA_MENU:
+            {
+              int choice = kitaMenu.handleTouch(x, y);
+              if (choice == 0) {
+                // Zurueck zur Themenauswahl
+                Serial.println("Returning to theme selection");
+                showThemeSelect();
+              } else if (choice == 1) {
+                // Schreiben-Uebung oeffnen
+                Serial.println("Opening Schreiben from KiTa");
+                // Info-Screen zeigen (nur beim ersten Mal)
+                if (!profileManager.hasSeenIntro(currentProfile.id, INTRO_SCHREIBEN)) {
+                  if (!infoScreen.show(INFO_SCHREIBEN, &touch)) {
+                    kitaMenu.draw();
+                    break;
+                  }
+                  profileManager.setIntroSeen(currentProfile.id, INTRO_SCHREIBEN);
+                }
+                schreiben.init();
+                currentMode = MODE_SCHREIBEN;
+              }
+            }
+            break;
+
+          // ========== REIT-MENÜ ==========
+
+          case MODE_REIT_MENU:
+            {
+              int choice = reitMenu.handleTouch(x, y);
+              if (choice == 0) {
+                // Zurueck zur Themenauswahl
+                Serial.println("Returning to theme selection");
+                showThemeSelect();
+              } else if (choice == 1) {
+                // Parcours (Einzelspiel)
+                Serial.println("Opening Parcours Menu");
+                parcoursMenu.draw();
+                currentMode = MODE_PARCOURS_MENU;
+              } else if (choice == 2) {
+                // Turnier - TODO (Phase 4)
+                Serial.println("Opening Reit-Turnier Menu (TODO)");
+              } else if (choice == 3) {
+                // Rekorde - TODO (Phase 5)
+                Serial.println("Opening Reit-Records (TODO)");
+              }
+            }
+            break;
+
+          case MODE_PARCOURS_MENU:
+            {
+              int choice = parcoursMenu.handleTouch(x, y);
+              if (choice == 0) {
+                // Zurueck zum Reit-Menue
+                Serial.println("Returning to Reit Menu");
+                reitMenu.draw();
+                currentMode = MODE_REIT_MENU;
+              } else if (choice >= 1 && choice <= 4) {
+                // Rechenart gewaehlt -> weiter zu Reitabzeichen
+                if (choice == 1) selectedMatheMode = MATHE_PLUS_MINUS;
+                else if (choice == 2) selectedMatheMode = MATHE_MULTIPLY;
+                else if (choice == 3) selectedMatheMode = MATHE_DIVIDE;
+                else selectedMatheMode = MATHE_ALL;
+
+                Serial.printf("Selected Mathe mode: %d\n", selectedMatheMode);
+                reitabzeichenMenu.draw();
+                currentMode = MODE_REITABZEICHEN_SELECTION;
+              }
+            }
+            break;
+
+          case MODE_REITABZEICHEN_SELECTION:
+            {
+              int choice = reitabzeichenMenu.handleTouch(x, y);
+              if (choice == 0) {
+                // Zurueck zur Rechenart-Auswahl
+                Serial.println("Returning to Parcours Menu");
+                parcoursMenu.draw();
+                currentMode = MODE_PARCOURS_MENU;
+              } else if (choice >= 1 && choice <= 3) {
+                // Reitabzeichen gewaehlt
+                if (choice == 1) selectedReitabzeichen = REITABZEICHEN_BRONZE;
+                else if (choice == 2) selectedReitabzeichen = REITABZEICHEN_SILBER;
+                else selectedReitabzeichen = REITABZEICHEN_GOLD;
+
+                // Intro-Screen anzeigen (blockiert bis Button)
+                Serial.println("Showing Reit Intro");
+                reitIntro.showIntro(selectedReitabzeichen, &touch);
+
+                // Dann Spiel starten
+                Serial.printf("Starting Springreiten: mode=%d, level=%d\n",
+                              selectedMatheMode, selectedReitabzeichen);
+                springreitenTrainer.init(selectedMatheMode, selectedReitabzeichen);
+                currentMode = MODE_SPRINGREITEN;
+              }
+            }
+            break;
+
+          case MODE_SPRINGREITEN:
+            {
+              int result = springreitenTrainer.handleButtonPress(x, y);
+              if (result == 1) {
+                // Home (nach Game Over)
+                Serial.println("Returning to Reit Menu");
+                reitMenu.draw();
+                currentMode = MODE_REIT_MENU;
+              } else if (result == 2) {
+                // Exit angefragt
+                modeBeforeExit = MODE_SPRINGREITEN;
+                confirmDialog.show("ABBRECHEN", "Parcours wirklich beenden?");
+                currentMode = MODE_CONFIRM_EXIT;
+              }
+            }
+            break;
+
+          // ========== HAUPTMENÜ (FUSSBALL) ==========
 
           case MODE_MENU:
             {
               int choice = menu.handleTouch(x, y);
               if (choice == 0) {
-                // Zurück zur Profilauswahl
-                Serial.println("Returning to profile selection");
-                showProfileSelect();
+                // Zurueck zur Themenauswahl
+                Serial.println("Returning to theme selection");
+                showThemeSelect();
               } else if (choice == 1) {
-                // Mathe-Fach öffnen
+                // Mathe-Fach oeffnen
                 Serial.println("Opening Mathe Menu");
                 matheMenu.init();
                 matheMenu.draw();
                 currentMode = MODE_MATHE_SELECTION;
               } else if (choice == 2) {
-                // Rekordematrix öffnen
+                // Rekordematrix oeffnen
                 Serial.println("Opening Records Screen");
                 RecordsMatrix records = profileManager.getRecords(currentProfile.id);
                 recordsScreen.init(records, currentProfile.name,
@@ -412,20 +625,6 @@ void loop() {
                 recordsScreen.draw();
                 currentMode = MODE_RECORDS;
               } else if (choice == 3) {
-                // Schreiben-Uebung oeffnen
-                Serial.println("Opening Schreiben");
-                // Info-Screen zeigen (nur beim ersten Mal)
-                if (!profileManager.hasSeenIntro(currentProfile.id, INTRO_SCHREIBEN)) {
-                  if (!infoScreen.show(INFO_SCHREIBEN, &touch)) {
-                    // Zurueck gedrueckt
-                    menu.draw();
-                    break;
-                  }
-                  profileManager.setIntroSeen(currentProfile.id, INTRO_SCHREIBEN);
-                }
-                schreiben.init();
-                currentMode = MODE_SCHREIBEN;
-              } else if (choice == 4) {
                 // Quiz-Menue oeffnen
                 Serial.println("Opening Quiz Menu");
                 quizMenu.init();
@@ -826,7 +1025,9 @@ void loop() {
 
                 // Je nach Ergebnis weiterleiten
                 if (tournament.getState() == TOURNAMENT_CHAMPION) {
-                  // Turnier gewonnen -> Save löschen + Rekord eintragen
+                  // Turnier gewonnen -> Jubel-Animation zeigen!
+                  matheTrainer.showChampionCelebration();
+                  // Save löschen + Rekord eintragen
                   profileManager.deleteTournamentSave(currentProfile.id, selectedTournamentType);
                   profileManager.recordTournamentWin(currentProfile.id, selectedTournamentType, selectedMatheMode);
                   trophyDisplay.init();
@@ -846,8 +1047,8 @@ void loop() {
                   );
                   currentMode = MODE_TOURNAMENT_PENALTY;
                 } else if (tournament.getState() == TOURNAMENT_ROUND_WON) {
-                  // Runde gewonnen -> Save speichern (nächste Runde)
-                  TournamentSave save = tournament.createSave();
+                  // Runde gewonnen -> Save mit naechster Runde speichern
+                  TournamentSave save = tournament.createSaveForNextRound();
                   profileManager.saveTournament(currentProfile.id, save);
                   tournament.draw();
                   currentMode = MODE_TOURNAMENT_INTRO;
@@ -897,15 +1098,17 @@ void loop() {
                 if (shootoutDone) {
                   // Elfmeterschießen beendet
                   if (tournament.getState() == TOURNAMENT_CHAMPION) {
-                    // Gewonnen -> Save löschen + Rekord eintragen
+                    // Gewonnen -> Jubel-Animation zeigen!
+                    matheTrainer.showChampionCelebration();
+                    // Save löschen + Rekord eintragen
                     profileManager.deleteTournamentSave(currentProfile.id, selectedTournamentType);
                     profileManager.recordTournamentWin(currentProfile.id, selectedTournamentType, selectedMatheMode);
                     trophyDisplay.init();
                     trophyDisplay.showTrophy(selectedTournamentType);
                     currentMode = MODE_TROPHY;
                   } else if (tournament.getState() == TOURNAMENT_ROUND_WON) {
-                    // Runde gewonnen -> Save speichern
-                    TournamentSave save = tournament.createSave();
+                    // Runde gewonnen -> Save mit naechster Runde speichern
+                    TournamentSave save = tournament.createSaveForNextRound();
                     profileManager.saveTournament(currentProfile.id, save);
                     tournament.draw();
                     currentMode = MODE_TOURNAMENT_INTRO;
@@ -1101,7 +1304,9 @@ void loop() {
                     Serial.printf("main: After K.O. result, state=%d\n", wcState);
 
                     if (wcState == WC_CHAMPION) {
-                      // WM gewonnen -> Rekord eintragen, Save loeschen
+                      // WM gewonnen -> Jubel-Animation zeigen!
+                      matheTrainer.showChampionCelebration();
+                      // Rekord eintragen, Save loeschen
                       profileManager.recordTournamentWin(currentProfile.id, TOURNAMENT_WORLD_CUP_2026, worldCupTournament.getMatheMode());
                       profileManager.deleteWorldCupSave(currentProfile.id);
                       trophyDisplay.init();
@@ -1218,7 +1423,9 @@ void loop() {
 
                 if (shootoutDone) {
                   if (worldCupTournament.getState() == WC_CHAMPION) {
-                    // WM gewonnen -> Rekord eintragen, Save loeschen
+                    // WM gewonnen -> Jubel-Animation zeigen!
+                    matheTrainer.showChampionCelebration();
+                    // Rekord eintragen, Save loeschen
                     profileManager.recordTournamentWin(currentProfile.id, TOURNAMENT_WORLD_CUP_2026, worldCupTournament.getMatheMode());
                     profileManager.deleteWorldCupSave(currentProfile.id);
                     trophyDisplay.init();
@@ -1289,9 +1496,9 @@ void loop() {
             {
               int choice = schreiben.handleTouch(x, y);
               if (choice == 0) {
-                // Zurueck zum Hauptmenue
-                menu.draw();
-                currentMode = MODE_MENU;
+                // Zurueck zum KiTa-Menue
+                kitaMenu.draw();
+                currentMode = MODE_KITA_MENU;
               }
             }
             break;

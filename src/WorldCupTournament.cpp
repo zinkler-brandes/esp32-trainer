@@ -600,6 +600,70 @@ int WorldCupTournament::simulateCPUMatch(int team1Index, int team2Index) {
   return goals1 * 10 + goals2;  // Encoded result
 }
 
+void WorldCupTournament::simulateRemainingKnockoutMatches(int round) {
+  // Simuliere alle K.O.-Spiele dieser Runde, die noch nicht gespielt wurden
+  int matchCount = getMatchCountForRound(round);
+
+  Serial.printf("WorldCup: Simulating remaining matches for round %d (%d total)\n",
+    round, matchCount);
+
+  for (int m = 0; m < matchCount; m++) {
+    int matchIdx = getMatchIndexForRound(round, m);
+
+    // Bereits gespielt? (inkl. Spieler-Match)
+    if (_bracketPlayed[matchIdx]) continue;
+
+    int team1, team2;
+    getTeamsForMatch(matchIdx, team1, team2);
+
+    // Ungueltige Teams ueberspringen (sollte nicht passieren)
+    if (team1 < 0 || team2 < 0) {
+      Serial.printf("WorldCup: Skipping match %d - invalid teams (%d vs %d)\n",
+        matchIdx, team1, team2);
+      continue;
+    }
+
+    // CPU vs CPU simulieren
+    int result = simulateCPUMatch(team1, team2);
+    int goals1 = result / 10;
+    int goals2 = result % 10;
+
+    // Bei Unentschieden: Elfmeterschiessen simulieren
+    if (goals1 == goals2) {
+      // Einfache Elfmeter-Simulation: Staerkeres Team gewinnt eher
+      int pen1 = random(2, 5);
+      int pen2 = random(2, 5);
+      while (pen1 == pen2) {
+        pen1 = random(0, 2);
+        pen2 = random(0, 2);
+        if (pen1 != pen2) {
+          pen1 += random(2, 5);
+          pen2 += random(2, 5);
+        }
+      }
+      _bracketPenalty[matchIdx] = true;
+      _bracketPenaltyResults[matchIdx][0] = pen1;
+      _bracketPenaltyResults[matchIdx][1] = pen2;
+
+      // Gewinner nach Elfmeter
+      _bracketWinners[matchIdx] = (pen1 > pen2) ? team1 : team2;
+
+      Serial.printf("WorldCup: %s %d:%d %s -> n.E. %d:%d\n",
+        WM_TEAMS[team1].abbrev, goals1, goals2,
+        WM_TEAMS[team2].abbrev, pen1, pen2);
+    } else {
+      // Klarer Sieger
+      _bracketWinners[matchIdx] = (goals1 > goals2) ? team1 : team2;
+    }
+
+    _bracketResults[matchIdx][0] = goals1;
+    _bracketResults[matchIdx][1] = goals2;
+    _bracketPlayed[matchIdx] = true;
+  }
+
+  Serial.printf("WorldCup: Round %d simulation complete\n", round);
+}
+
 bool WorldCupTournament::isGroupPhaseComplete() {
   return _groupMatchIndex >= 3;
 }
@@ -789,6 +853,10 @@ void WorldCupTournament::handleKnockoutMatchResult(int playerGoals, int cpuGoals
   if (playerGoals > cpuGoals) {
     // Gewonnen
     Serial.println("WorldCup: Player WON");
+
+    // Restliche Spiele dieser Runde simulieren BEVOR wir zur naechsten gehen
+    simulateRemainingKnockoutMatches(_knockoutRound);
+
     if (_knockoutRound >= 4) {
       // Finale gewonnen!
       _state = WC_CHAMPION;

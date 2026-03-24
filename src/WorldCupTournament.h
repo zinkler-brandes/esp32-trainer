@@ -161,6 +161,9 @@ class WorldCupTournament {
     // CPU vs CPU Match-Simulation (gibt Ergebnis als encoded int: team1Goals * 10 + team2Goals)
     int simulateCPUMatch(int team1Index, int team2Index);
 
+    // Restliche K.O.-Spiele einer Runde simulieren
+    void simulateRemainingKnockoutMatches(int round);
+
     // Beste Dritte Berechnung
     void calculateBestThirds();
     bool isThirdPlaceQualified(int groupIndex);

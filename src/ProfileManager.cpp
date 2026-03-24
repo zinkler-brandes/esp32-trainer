@@ -551,6 +551,33 @@ WorldCupSave ProfileManager::loadWorldCupSave(int profileId) {
     s++;
   }
 
+  // Bracket-Played Array laden
+  JsonArray played = doc["played"].as<JsonArray>();
+  int pl = 0;
+  for (JsonVariant p : played) {
+    if (pl >= 31) break;
+    save.bracketPlayed[pl] = (p.as<int>() != 0);
+    pl++;
+  }
+
+  // Elfmeter-Arrays laden
+  JsonArray penalty = doc["penalty"].as<JsonArray>();
+  int pen = 0;
+  for (JsonVariant p : penalty) {
+    if (pen >= 31) break;
+    save.bracketPenalty[pen] = (p.as<int>() != 0);
+    pen++;
+  }
+
+  JsonArray penScores = doc["penScores"].as<JsonArray>();
+  int ps = 0;
+  for (JsonVariant psc : penScores) {
+    if (ps >= 31) break;
+    save.bracketPenaltyScores[ps][0] = psc[0] | 0;
+    save.bracketPenaltyScores[ps][1] = psc[1] | 0;
+    ps++;
+  }
+
   Serial.printf("WorldCupSave: Loaded player=%d group=%c round=%d\n",
     save.playerTeamIndex, 'A' + save.playerGroupIndex, save.knockoutRound);
 
@@ -607,6 +634,25 @@ bool ProfileManager::saveWorldCup(int profileId, const WorldCupSave& save) {
     JsonArray sc = scores.add<JsonArray>();
     sc.add(save.bracketScores[i][0]);
     sc.add(save.bracketScores[i][1]);
+  }
+
+  // Bracket-Played Array speichern
+  JsonArray played = doc["played"].to<JsonArray>();
+  for (int i = 0; i < 31; i++) {
+    played.add(save.bracketPlayed[i] ? 1 : 0);
+  }
+
+  // Elfmeter-Arrays speichern
+  JsonArray penalty = doc["penalty"].to<JsonArray>();
+  for (int i = 0; i < 31; i++) {
+    penalty.add(save.bracketPenalty[i] ? 1 : 0);
+  }
+
+  JsonArray penScores = doc["penScores"].to<JsonArray>();
+  for (int i = 0; i < 31; i++) {
+    JsonArray ps = penScores.add<JsonArray>();
+    ps.add(save.bracketPenaltyScores[i][0]);
+    ps.add(save.bracketPenaltyScores[i][1]);
   }
 
   String output;

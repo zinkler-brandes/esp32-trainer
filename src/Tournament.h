@@ -64,6 +64,7 @@ class Tournament {
 
     // Save/Load
     TournamentSave createSave();
+    TournamentSave createSaveForNextRound();  // Speichert mit naechster Runde + neuem Gegner
     void loadFromSave(const TournamentSave& save);
 
   private:
@@ -90,6 +91,10 @@ class Tournament {
     int _cpuPenalties;
     int _penaltyRound;  // 1-3 (erste 3 Schüsse), dann weitere
     bool _playerShot;   // Spieler hat in dieser Runde geschossen
+
+    // Besiegter Gegner (fuer "GEWONNEN" Anzeige)
+    Team _defeatedOpponent;
+    int _wonRound;  // Die gewonnene Runde
 
     // Statische Speicher für geladene Gegnerdaten (weil Team const char* verwendet)
     String _loadedOpponentName;

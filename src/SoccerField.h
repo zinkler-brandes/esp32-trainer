@@ -52,12 +52,21 @@ class SoccerField {
     void showPenaltyResult(bool playerScored, bool cpuScored,
                            int playerTotal, int cpuTotal, int round);
 
+    // Jubel-Feier (Easter Egg bei Turniersieg)
+    void showChampionCelebration();
+
     // Getter
     String getPlayerName() { return _playerName; }
 
     // Zuschauer
     void drawSpectators(bool standing = false);  // normal sitzend, oder stehend
     void drawJubilatingSpectators(int frame);    // jubelnd (animiert)
+
+    // Werbebande
+    void drawAdvertisingBoard();
+
+    // Seitenbanden neben den Toren
+    void drawSideBoards();
 
   private:
     TFT_eSPI* _tft;
@@ -74,6 +83,9 @@ class SoccerField {
     TournamentType _tournamentType;
     int _playerTeamIndex;    // WM-Team-Index (-1 wenn nicht WM)
     int _opponentTeamIndex;  // WM-Team-Index (-1 wenn nicht WM)
+
+    // Hintergrundfarbe (wird in drawField gesetzt)
+    uint16_t _bgColor;
 };
 
 #endif
