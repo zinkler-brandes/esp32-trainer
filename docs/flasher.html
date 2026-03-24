@@ -4,42 +4,271 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tiki Taka - Firmware Installieren</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&display=swap" rel="stylesheet">
   <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
   <style>
+    :root {
+      --rainbow-red: #FF3B3B;
+      --rainbow-orange: #FF9500;
+      --rainbow-yellow: #FFCC00;
+      --rainbow-green: #34C759;
+      --rainbow-cyan: #00D4FF;
+      --rainbow-blue: #007AFF;
+      --rainbow-purple: #AF52DE;
+      --rainbow-pink: #FF2D92;
+      --bg-dark: #0a0a0a;
+      --bg-card: #151515;
+    }
+
     * {
       box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      max-width: 600px;
-      margin: 0 auto;
-      padding: 2rem;
-      background: linear-gradient(135deg, #1a472a 0%, #2d5a3d 100%);
-      min-height: 100vh;
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-dark);
       color: #fff;
+      min-height: 100vh;
     }
 
-    h1 {
+    /* Rainbow Bar */
+    .rainbow-bar {
+      height: 6px;
+      background: linear-gradient(90deg,
+        var(--rainbow-red) 0%,
+        var(--rainbow-orange) 14%,
+        var(--rainbow-yellow) 28%,
+        var(--rainbow-green) 42%,
+        var(--rainbow-cyan) 57%,
+        var(--rainbow-blue) 71%,
+        var(--rainbow-purple) 85%,
+        var(--rainbow-pink) 100%
+      );
+    }
+
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+
+    /* Logo */
+    .logo {
       text-align: center;
-      font-size: 2.5rem;
       margin-bottom: 0.5rem;
     }
 
+    .logo-text {
+      font-size: 2.5rem;
+      font-weight: 900;
+      letter-spacing: 0.05em;
+    }
+
+    .logo-text span:nth-child(1) { color: var(--rainbow-red); }
+    .logo-text span:nth-child(2) { color: var(--rainbow-orange); }
+    .logo-text span:nth-child(3) { color: var(--rainbow-yellow); }
+    .logo-text span:nth-child(4) { color: var(--rainbow-green); }
+    .logo-text span:nth-child(5) { color: var(--rainbow-cyan); }
+    .logo-text span:nth-child(6) { color: var(--rainbow-blue); }
+    .logo-text span:nth-child(7) { color: var(--rainbow-purple); }
+    .logo-text span:nth-child(8) { color: var(--rainbow-pink); }
+
     .subtitle {
       text-align: center;
-      opacity: 0.8;
+      color: #888;
+      font-size: 1.1rem;
       margin-bottom: 2rem;
     }
 
+    /* Card */
     .card {
-      background: #fff;
-      color: #333;
-      border-radius: 12px;
+      background: var(--bg-card);
+      border-radius: 16px;
       padding: 2rem;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      border: 1px solid #222;
     }
 
+    /* Important Box */
+    .important-box {
+      background: linear-gradient(135deg, rgba(255,59,59,0.15) 0%, rgba(255,149,0,0.15) 100%);
+      border: 2px solid var(--rainbow-orange);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .important-box h3 {
+      color: var(--rainbow-orange);
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .button-illustration {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1.5rem;
+      margin: 1.5rem 0;
+    }
+
+    /* 3D Case Illustration */
+    .device-case {
+      position: relative;
+      width: 180px;
+      height: 120px;
+      background: linear-gradient(145deg, #2a2a2a 0%, #1a1a1a 100%);
+      border-radius: 8px;
+      border: 2px solid #333;
+      box-shadow:
+        0 4px 8px rgba(0,0,0,0.4),
+        inset 0 1px 0 rgba(255,255,255,0.05);
+      /* 3D print texture */
+      background-image: repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 2px,
+        rgba(255,255,255,0.02) 2px,
+        rgba(255,255,255,0.02) 3px
+      );
+    }
+
+    .device-case-label {
+      position: absolute;
+      top: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.7rem;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    /* Screw holes */
+    .screw {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: #111;
+      border-radius: 50%;
+      border: 1px solid #222;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);
+    }
+    .screw::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 4px;
+      height: 4px;
+      background: #0a0a0a;
+      border-radius: 50%;
+    }
+    .screw-tl { top: 8px; left: 8px; }
+    .screw-tr { top: 8px; right: 8px; }
+    .screw-bl { bottom: 8px; left: 8px; }
+    .screw-br { bottom: 8px; right: 8px; }
+
+    /* Speaker/vent slots */
+    .vent-slots {
+      position: absolute;
+      bottom: 25px;
+      left: 25px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .vent-slot {
+      width: 20px;
+      height: 3px;
+      background: #111;
+      border-radius: 1px;
+    }
+
+    /* SD card slot */
+    .sd-slot {
+      position: absolute;
+      bottom: 30px;
+      left: 55px;
+      width: 18px;
+      height: 14px;
+      background: linear-gradient(180deg, #c0c0c0 0%, #888 100%);
+      border-radius: 2px;
+      border: 1px solid #666;
+    }
+
+    /* Button area - top right corner of case */
+    .buttons-area {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      display: flex;
+      gap: 8px;
+    }
+
+    /* Elongated plastic push buttons */
+    .case-button {
+      width: 10px;
+      height: 28px;
+      background: linear-gradient(180deg, #3a3a3a 0%, #252525 100%);
+      border-radius: 3px;
+      border: 1px solid #444;
+      box-shadow:
+        0 2px 4px rgba(0,0,0,0.3),
+        inset 0 1px 0 rgba(255,255,255,0.1);
+      transition: all 0.2s;
+    }
+
+    .case-button.boot {
+      background: linear-gradient(180deg, var(--rainbow-green) 0%, #1d7a34 100%);
+      border-color: var(--rainbow-green);
+      box-shadow:
+        0 0 12px rgba(52, 199, 89, 0.5),
+        0 2px 4px rgba(0,0,0,0.3),
+        inset 0 1px 0 rgba(255,255,255,0.2);
+      animation: pulse-bar 1.5s infinite;
+    }
+
+    @keyframes pulse-bar {
+      0%, 100% { box-shadow: 0 0 12px rgba(52, 199, 89, 0.5), 0 2px 4px rgba(0,0,0,0.3); }
+      50% { box-shadow: 0 0 20px rgba(52, 199, 89, 0.8), 0 2px 4px rgba(0,0,0,0.3); }
+    }
+
+    /* Arrow and text */
+    .hint-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .arrow-hint {
+      color: var(--rainbow-green);
+      font-size: 2rem;
+      line-height: 1;
+    }
+
+    .hold-text {
+      color: #fff;
+      font-weight: 600;
+      text-align: center;
+      font-size: 0.95rem;
+      line-height: 1.3;
+    }
+
+    .hold-subtext {
+      color: var(--rainbow-green);
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    /* Steps */
     .steps {
       margin: 1.5rem 0;
     }
@@ -47,163 +276,301 @@
     .step {
       display: flex;
       align-items: flex-start;
-      margin-bottom: 1rem;
+      margin-bottom: 1.25rem;
     }
 
     .step-number {
-      background: #1a472a;
-      color: #fff;
-      width: 28px;
-      height: 28px;
+      width: 32px;
+      height: 32px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: bold;
+      font-weight: 800;
       margin-right: 1rem;
       flex-shrink: 0;
-    }
-
-    .install-container {
-      text-align: center;
-      margin: 2rem 0;
-      padding: 1.5rem;
-      background: #f5f5f5;
-      border-radius: 8px;
-    }
-
-    esp-web-install-button {
-      --esp-tools-button-color: #1a472a;
-    }
-
-    esp-web-install-button button {
-      background: #1a472a;
-      color: #fff;
-      border: none;
-      padding: 1rem 2rem;
-      font-size: 1.2rem;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: bold;
-      transition: background 0.2s;
-    }
-
-    esp-web-install-button button:hover {
-      background: #2d5a3d;
-    }
-
-    .warning {
-      background: #fff3cd;
-      border-left: 4px solid #ffc107;
-      padding: 1rem;
-      margin: 1.5rem 0;
-      border-radius: 0 8px 8px 0;
-    }
-
-    .warning strong {
-      color: #856404;
-    }
-
-    .help {
-      margin-top: 2rem;
-      padding-top: 1.5rem;
-      border-top: 1px solid #eee;
-    }
-
-    .help summary {
-      cursor: pointer;
-      font-weight: bold;
-      color: #1a472a;
-    }
-
-    .help-content {
-      margin-top: 1rem;
       font-size: 0.9rem;
     }
 
-    .back-link {
-      display: block;
-      text-align: center;
-      margin-top: 2rem;
-      color: #fff;
-      opacity: 0.8;
+    .step:nth-child(1) .step-number { background: var(--rainbow-red); }
+    .step:nth-child(2) .step-number { background: var(--rainbow-orange); color: #000; }
+    .step:nth-child(3) .step-number { background: var(--rainbow-yellow); color: #000; }
+    .step:nth-child(4) .step-number { background: var(--rainbow-green); color: #000; }
+    .step:nth-child(5) .step-number { background: var(--rainbow-cyan); color: #000; }
+
+    .step-text {
+      padding-top: 0.3rem;
+      line-height: 1.5;
     }
 
-    .back-link:hover {
-      opacity: 1;
+    .step-text strong {
+      color: var(--rainbow-cyan);
+    }
+
+    /* Browser Warning */
+    .browser-warning {
+      background: rgba(255, 204, 0, 0.1);
+      border: 1px solid var(--rainbow-yellow);
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 1.5rem 0;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .browser-warning-icon {
+      font-size: 1.5rem;
+    }
+
+    .browser-warning-text {
+      color: var(--rainbow-yellow);
+      font-size: 0.9rem;
+    }
+
+    /* Install Button Container */
+    .install-container {
+      text-align: center;
+      margin: 2rem 0;
+      padding: 2rem;
+      background: linear-gradient(135deg, rgba(0,212,255,0.1) 0%, rgba(175,82,222,0.1) 100%);
+      border-radius: 12px;
+      border: 1px solid #333;
+    }
+
+    esp-web-install-button button {
+      background: linear-gradient(135deg, var(--rainbow-cyan) 0%, var(--rainbow-purple) 100%);
+      color: #fff;
+      border: none;
+      padding: 1.25rem 3rem;
+      font-size: 1.3rem;
+      font-weight: 800;
+      border-radius: 50px;
+      cursor: pointer;
+      font-family: 'Outfit', sans-serif;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
+    }
+
+    esp-web-install-button button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 30px rgba(0, 212, 255, 0.4);
+    }
+
+    esp-web-install-button [slot="unsupported"],
+    esp-web-install-button [slot="not-allowed"] {
+      color: var(--rainbow-red);
+      background: rgba(255, 59, 59, 0.1);
+      padding: 1rem;
+      border-radius: 8px;
+      display: block;
     }
 
     .version {
       text-align: center;
       margin-top: 1rem;
-      font-size: 0.85rem;
-      opacity: 0.7;
+      font-size: 0.9rem;
+      color: #666;
+    }
+
+    .version strong {
+      color: var(--rainbow-green);
+    }
+
+    /* Help Section */
+    .help {
+      margin-top: 2rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid #222;
+    }
+
+    .help summary {
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--rainbow-cyan);
+      font-size: 1rem;
+    }
+
+    .help summary:hover {
+      color: var(--rainbow-blue);
+    }
+
+    .help-content {
+      margin-top: 1rem;
+      color: #aaa;
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+
+    .help-content p {
+      margin-top: 1rem;
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .help-content ul {
+      margin: 0.5rem 0 0 1.5rem;
+    }
+
+    .help-content li {
+      margin-bottom: 0.25rem;
+    }
+
+    /* Back Link */
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 2rem;
+      color: #666;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .back-link:hover {
+      color: var(--rainbow-cyan);
+    }
+
+    /* Footer Rainbow */
+    .rainbow-bar-bottom {
+      margin-top: 2rem;
     }
   </style>
 </head>
 <body>
-  <h1>Tiki Taka</h1>
-  <p class="subtitle">Firmware installieren</p>
+  <div class="rainbow-bar"></div>
 
-  <div class="card">
-    <div class="steps">
-      <div class="step">
-        <span class="step-number">1</span>
-        <span>Schließe das Gerät per <strong>USB-Kabel</strong> an deinen Computer an.</span>
-      </div>
-      <div class="step">
-        <span class="step-number">2</span>
-        <span>Klicke unten auf <strong>"Installieren"</strong>.</span>
-      </div>
-      <div class="step">
-        <span class="step-number">3</span>
-        <span>Wähle den <strong>USB-Port</strong> aus (meist "CP2102" oder "CH340").</span>
-      </div>
-      <div class="step">
-        <span class="step-number">4</span>
-        <span>Warte bis die Installation fertig ist (~1 Minute).</span>
+  <div class="container">
+    <div class="logo">
+      <div class="logo-text">
+        <span>T</span><span>I</span><span>K</span><span>I</span><span>T</span><span>A</span><span>K</span><span>A</span>
       </div>
     </div>
+    <p class="subtitle">Firmware installieren</p>
 
-    <div class="warning">
-      <strong>Wichtig:</strong> Nutze Chrome oder Edge. Safari und Firefox werden nicht unterstützt.
-    </div>
+    <div class="card">
 
-    <div class="install-container">
-      <esp-web-install-button manifest="manifest.json">
-        <button slot="activate">Installieren</button>
-        <span slot="unsupported">
-          Dein Browser unterstützt Web-USB nicht.<br>
-          Bitte nutze Chrome oder Edge.
+      <!-- Important: Button Instructions -->
+      <div class="important-box">
+        <h3>Wichtig: Taste gedrückt halten!</h3>
+        <p>Während der Installation musst du eine Taste auf der Rückseite gedrückt halten:</p>
+
+        <div class="button-illustration">
+          <!-- Hint -->
+          <div class="hint-area">
+            <div class="arrow-hint">→</div>
+            <div class="hold-text">Linke Taste<br>gedrückt halten!</div>
+            <div class="hold-subtext">(von hinten gesehen)</div>
+          </div>
+
+          <!-- 3D Case Illustration -->
+          <div class="device-case">
+            <span class="device-case-label">Rückseite</span>
+
+            <!-- Screws -->
+            <div class="screw screw-tl"></div>
+            <div class="screw screw-tr"></div>
+            <div class="screw screw-bl"></div>
+            <div class="screw screw-br"></div>
+
+            <!-- Vent slots -->
+            <div class="vent-slots">
+              <div class="vent-slot"></div>
+              <div class="vent-slot"></div>
+              <div class="vent-slot"></div>
+            </div>
+
+            <!-- SD card slot -->
+            <div class="sd-slot"></div>
+
+            <!-- Elongated push buttons -->
+            <div class="buttons-area">
+              <div class="case-button boot"></div>
+              <div class="case-button"></div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Steps -->
+      <div class="steps">
+        <div class="step">
+          <span class="step-number">1</span>
+          <span class="step-text">Verbinde das Gerät per <strong>USB-Kabel</strong> mit deinem Computer.</span>
+        </div>
+        <div class="step">
+          <span class="step-number">2</span>
+          <span class="step-text">Halte die <strong>BOOT-Taste</strong> auf der Rückseite gedrückt (linke Taste).</span>
+        </div>
+        <div class="step">
+          <span class="step-number">3</span>
+          <span class="step-text">Klicke auf <strong>"Firmware installieren"</strong> und wähle den USB-Port aus.</span>
+        </div>
+        <div class="step">
+          <span class="step-number">4</span>
+          <span class="step-text">Sobald der <strong>Ladebalken erscheint</strong>, kannst du die Taste loslassen.</span>
+        </div>
+        <div class="step">
+          <span class="step-number">5</span>
+          <span class="step-text">Warte bis die Installation fertig ist. Dann <strong>USB kurz abstecken</strong>.</span>
+        </div>
+      </div>
+
+      <!-- Browser Warning -->
+      <div class="browser-warning">
+        <span class="browser-warning-icon">⚠️</span>
+        <span class="browser-warning-text">
+          <strong>Nur Chrome oder Edge!</strong> Safari und Firefox werden nicht unterstützt.
         </span>
-        <span slot="not-allowed">
-          USB-Zugriff wurde blockiert.<br>
-          Bitte erlaube den Zugriff und versuche es erneut.
-        </span>
-      </esp-web-install-button>
+      </div>
+
+      <!-- Install Button -->
+      <div class="install-container">
+        <esp-web-install-button manifest="manifest.json">
+          <button slot="activate">Firmware installieren</button>
+          <span slot="unsupported">
+            Dein Browser unterstützt kein Web-USB.<br>
+            Bitte nutze <strong>Chrome</strong> oder <strong>Edge</strong>.
+          </span>
+          <span slot="not-allowed">
+            USB-Zugriff wurde blockiert.<br>
+            Bitte erlaube den Zugriff und versuche es erneut.
+          </span>
+        </esp-web-install-button>
+      </div>
+
+      <p class="version">Aktuelle Version: <strong>v0.1.1</strong></p>
+
+      <!-- Help -->
+      <details class="help">
+        <summary>Probleme bei der Installation?</summary>
+        <div class="help-content">
+          <p>Gerät wird nicht erkannt?</p>
+          <ul>
+            <li>Probiere ein anderes USB-Kabel (manche Kabel sind nur zum Laden)</li>
+            <li>Versuche einen anderen USB-Port an deinem Computer</li>
+            <li>Windows: Installiere den Treiber für CP2102 oder CH340</li>
+          </ul>
+
+          <p>Installation startet nicht?</p>
+          <ul>
+            <li>Halte die BOOT-Taste (links hinten) während des gesamten Vorgangs gedrückt</li>
+            <li>Alternative: Halte BOOT, drücke kurz RESET, dann lasse BOOT los</li>
+            <li>Trenne das USB-Kabel und versuche es erneut</li>
+          </ul>
+
+          <p>"Failed to initialize" Fehler?</p>
+          <ul>
+            <li>Das Gerät ist nicht im Boot-Modus - halte die BOOT-Taste!</li>
+            <li>Schließe andere Programme, die den USB-Port nutzen könnten</li>
+          </ul>
+        </div>
+      </details>
     </div>
 
-    <p class="version">Aktuelle Version: <strong>v1.0.0</strong></p>
-
-    <details class="help">
-      <summary>Probleme?</summary>
-      <div class="help-content">
-        <p><strong>Gerät wird nicht erkannt?</strong></p>
-        <ul>
-          <li>Probiere ein anderes USB-Kabel (manche sind nur zum Laden)</li>
-          <li>Versuche einen anderen USB-Port</li>
-          <li>Unter Windows: Treiber für CP2102 oder CH340 installieren</li>
-        </ul>
-
-        <p><strong>Installation schlägt fehl?</strong></p>
-        <ul>
-          <li>Halte beim Einstecken die "Boot"-Taste am Gerät gedrückt</li>
-          <li>Trenne das Gerät und versuche es erneut</li>
-        </ul>
-      </div>
-    </details>
+    <a href="index.html" class="back-link">← Zurück zur Startseite</a>
   </div>
 
-  <a href="/" class="back-link">← Zurück zur Startseite</a>
+  <div class="rainbow-bar rainbow-bar-bottom"></div>
 </body>
 </html>

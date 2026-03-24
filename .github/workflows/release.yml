@@ -26,10 +26,28 @@ jobs:
       - name: Build Firmware
         run: pio run
 
-      - name: Prepare Release Files
+      - name: Create Merged Binary
         run: |
           mkdir -p release
-          cp .pio/build/esp32-2432S028/firmware.bin release/tikitaka-${{ github.ref_name }}.bin
+
+          # Pfade zu den Build-Artefakten
+          BUILD_DIR=".pio/build/esp32-2432S028"
+
+          # Merged Binary erstellen (Bootloader + Partitions + Firmware)
+          # ESP32 Flash Layout:
+          # 0x1000  - bootloader.bin
+          # 0x8000  - partitions.bin
+          # 0xe000  - boot_app0.bin
+          # 0x10000 - firmware.bin
+          python -m esptool --chip esp32 merge_bin \
+            --output release/tikitaka-${{ github.ref_name }}.bin \
+            --flash_mode dio \
+            --flash_freq 40m \
+            --flash_size 4MB \
+            0x1000 $BUILD_DIR/bootloader.bin \
+            0x8000 $BUILD_DIR/partitions.bin \
+            0xe000 ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin \
+            0x10000 $BUILD_DIR/firmware.bin
 
           # Checksumme erstellen
           cd release
